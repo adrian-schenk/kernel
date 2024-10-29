@@ -79,7 +79,7 @@ void kernel_main() {
     printf("%u \n", info->BytesPerScanLine);
     
     for(int i = 0; i < video_yres; i++){
-        graphics_draw_pixel(i,i, 0xffff0000);
+        graphics_draw_pixel(i,i, 0xffffff00);
     }
     for(;;){
         
