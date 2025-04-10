@@ -17,7 +17,7 @@ struct gdt_ptr {
 } __attribute__((packed));
 
 // Define the GDT and GDT pointer
-struct gdt_entry gdt[3];
+struct gdt_entry gdt_[3];
 struct gdt_ptr gp;
 
 void set_gdt_entry(int num, uint32_t base, uint32_t limit, uint8_t access, uint8_t granularity);

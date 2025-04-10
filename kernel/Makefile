@@ -2,7 +2,7 @@ include ../Makefile.config
 
 # Define variables
 TARGET = kernel.elf
-OBJ = main.o kmalloc.o graphics.o font.o bitmap.o console.o printf.o string.o
+OBJ = main.o kmalloc.o graphics.o font.o bitmap.o console.o printf.o string.o gdt.o idt.o
 
 .PHONY: all clean
 

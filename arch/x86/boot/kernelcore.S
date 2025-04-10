@@ -8,23 +8,14 @@ _start:
 
 _realstart:
 
-	mov $0x4f00, %ax
-	mov $(vesa_info-_start),%di
-	int $0x10
+    mov	$0x4f02, %ax
+    movw $0x4118, %bx
+    int	$0x10
 
-	mov	$0x4f02, %ax
- 	movw $0x4118, %bx
-	int	$0x10
+    mov	%ds, %ax		# Set up the extra segment
+    mov	%ax, %es		# with the data segment
 
-	mov	%ds, %ax		# Set up the extra segment
-	mov	%ax, %es		# with the data segment
-
-	mov	$(video_info-_start),%di
-	mov	$0x4f01, %ax
-	mov	%bx, %cx
-	int	$0x10
-	
-	# enable A20 line
+    # enable A20 line
     inb $0x92, %al      
     orb $2, %al
     outb %al, $0x92
@@ -38,80 +29,40 @@ _realstart:
     mov %eax, %cr0
 
     mov	$(2*8), %ax		# selector two is flat 4GB data data
-	mov	%ax, %ds		# set data, extra, and stack segments to selector two
-	mov	%ax, %es
-	mov	%ax, %ss
+    mov	%ax, %ds		# set data, extra, and stack segments to selector two
+    mov	%ax, %es
+    mov	%ax, %ss
 
     xor %ax, %ax
     mov %ax, %fs
     mov %ax, %gs
 
     mov	$INTERRUPT_STACK_TOP, %sp    # set up initial C stack
-	mov	$INTERRUPT_STACK_TOP, %bp    # set up initial C stack
+    mov	$INTERRUPT_STACK_TOP, %bp    # set up initial C stack
 
     # Far jump to flush prefetch queue and switch to protected mode
     ljmpl $(1*8), $pm_start
 
 .code32
-
 pm_start:
-	ljmpl $(1*8), $(kernel_main)
-
-# The video_info structure is filled in by a BIOS
-# call above, and is used to record the basic video
-# layout for the graphics subsystem.  See page 30
-# of the VBE specification for an explanation of this structure.
-
-.align 4
-vesa_info:
-.rept 508
-	.byte 0
-.endr
-
-.align 4
-video_info:
-	.word	0
-	.byte	0,0
-	.word	0,0,0,0
-	.long	0
-.global video_xbytes
-video_xbytes:
-	.word	0
-.global video_xres
-video_xres:
-	.word	0 
-.global video_yres
-video_yres:
-	.word	0
-	.byte	0,0,0,0,0,0,0,0,0
-	.byte	0,0,0,0,0,0,0,0,0
-.global video_buffer
-video_buffer:
-	.long	0
-	.long	0
-	.word	0
-	.word	0
-	.byte	0,0,0,0,0,0,0,0,0,0
-	.long	0
-.rept 190
-	.byte	0
-.endr
+    #jmp lm_jmp
+    ljmpl $(1*8), $(kernel_main)
 
 .align 16
 .global gdt
 gdt:
-	.word	0,0,0,0				# seg 0 - null
-	.word	0xffff, 0x0000, 0x9a00, 0x00cf	# seg 1 - kernel flat 4GB code
-	.word	0xffff, 0x0000, 0x9200, 0x00cf	# seg 2 - kernel flat 4GB data
-	.word	0xffff, 0x0000, 0xfa00, 0x00cf	# seg 3 - user flat 4GB code
-	.word	0xffff, 0x0000, 0xf200, 0x00cf	# seg 4 - user flat 4GB data
+    .word	0,0,0,0				# seg 0 - null
+    .word	0xffff, 0x0000, 0x9a00, 0x00cf	# seg 1 - kernel flat 4GB code
+    .word	0xffff, 0x0000, 0x9200, 0x00cf	# seg 2 - kernel flat 4GB data
+    .word	0xffff, 0x0000, 0xfa00, 0x00cf	# seg 3 - user flat 4GB code
+    .word	0xffff, 0x0000, 0xf200, 0x00cf	# seg 4 - user flat 4GB data
 	
 # This is the initializer for the global descriptor table.
 # It simply tells us the size and location of the table.
 
 gdt_init:
-	.word	gdt_init-gdt
-	.long	gdt
+    .word	gdt_init-gdt
+    .long	gdt
 
 # First, the internal interrupts.
 # Note that some already push their own detail
