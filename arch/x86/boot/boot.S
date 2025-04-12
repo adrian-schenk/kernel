@@ -22,7 +22,7 @@ _start:
     mov $msg, %si
     call print_string
 
-    mov $KERNEL_SEGMENT, %ax # Destination Segment -> es = KERNEL_SEGMENT
+    mov $PM_SEGMENT, %ax # Destination Segment -> es = KERNEL_SEGMENT
     mov %ax, %es
 
     movb $0x02, %cl      # Sector number
@@ -48,7 +48,7 @@ loadnext:
 
     inc %cl
 
-    mov $KERNEL_SEGMENT, %ax
+    mov $PM_SEGMENT, %ax
     mov %ax, %ds
 
     mov $-16, %si
@@ -56,7 +56,7 @@ loadnext:
     jmp load_checksig
 
 loaddone:
-    mov $KERNEL_SEGMENT, %ax
+    mov $PM_SEGMENT, %ax
     mov %ax, %ds
     mov %ax, %ss
     mov %ax, %es
@@ -65,7 +65,7 @@ loaddone:
 
     mov (sectors_loaded), %ax
 
-    ljmp $KERNEL_SEGMENT, $KERNEL_OFFSET            # Jump to the loaded code (adjust as needed)
+    ljmp $PM_SEGMENT, $KERNEL_OFFSET            # Jump to the loaded code (adjust as needed)
 
 load_checksig:
 
@@ -74,7 +74,7 @@ load_checksig:
 
     movw (%bx, %si), %ax
 
-    cmpw $0x55aa, %ax
+    cmpw $0xaa55, %ax
 
     jne load
 
@@ -124,7 +124,7 @@ sectors_loaded:
     .word 0x0000
 
 last_sector:
-    .word KERNEL_OFFSET
+    .word PM_OFFSET
 
 .org 510
 .byte 0x55, 0xAA

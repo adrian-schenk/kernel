@@ -45,8 +45,9 @@ _realstart:
 
 .code32
 pm_start:
+    hlt
     #jmp lm_jmp
-    ljmpl $(1*8), $(kernel_main)
+    #ljmpl $(1*8), $(kernel_main)
 
 .align 16
 .global gdt
