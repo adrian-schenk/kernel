@@ -8,6 +8,7 @@ _start:
 
 _realstart:
 
+    # set vesa mode
     mov	$0x4f02, %ax
     movw $0x4118, %bx
     int	$0x10
@@ -45,7 +46,6 @@ _realstart:
 
 .code32
 pm_start:
-    #jmp lm_jmp
     ljmpl $(1*8), $(kernel_main)
 
 .align 16
@@ -63,7 +63,7 @@ gdt:
 gdt_init:
     .word	gdt_init-gdt
     .long	gdt
-
+    
 # First, the internal interrupts.
 # Note that some already push their own detail
 # code onto the stack.  For the others, we push
@@ -127,126 +127,127 @@ intr47: pushl $0 ; pushl $47 ; jmp intr_handler
 intr48: pushl $0 ; pushl $48 ; jmp intr_syscall
 
 intr_handler:
-	pushl	%ds		# push segment registers
-	pushl	%es
-	pushl	%fs
-	pushl	%gs
-	pushl	%ebp		# push general regs
-	pushl	%edi
-	pushl	%esi
-	pushl	%edx
-	pushl	%ecx
-	pushl	%ebx
-	pushl	%eax
-	pushl	48(%esp)	# push interrupt code from above
-	pushl	48(%esp)	# push interrupt number from above
-	movl	$2*8, %eax	# switch to kernel data seg and extra seg
-	movl	%eax, %ds
-	movl	%eax, %es
-	#call	interrupt_handler
-	addl	$4, %esp	# remove interrupt number
-	addl	$4, %esp	# remove interrupt code
-	jmp	intr_return
+    pushl	%ds		# push segment registers
+    pushl	%es
+    pushl	%fs
+    pushl	%gs
+    pushl	%ebp		# push general regs
+    pushl	%edi
+    pushl	%esi
+    pushl	%edx
+    pushl	%ecx
+    pushl	%ebx
+    pushl	%eax
+    pushl	48(%esp)	# push interrupt code from above
+    pushl	48(%esp)	# push interrupt number from above
+    movl	$2*8, %eax	# switch to kernel data seg and extra seg
+    movl	%eax, %ds
+    movl	%eax, %es
+    call	interrupt_handler
+    addl	$4, %esp	# remove interrupt number
+    addl	$4, %esp	# remove interrupt code
+    jmp	intr_return
 	
 intr_syscall:
-	pushl	%ds		# push segment registers
-	pushl	%es
-	pushl	%fs
-	pushl	%gs
-	pushl	%ebp		# push general regs
-	pushl	%edi
-	pushl	%esi
-	pushl	%edx
-	pushl	%ecx
-	pushl	%ebx
-	pushl	%eax		# note these *are* the syscall args
-	movl	$2*8, %eax	# switch to kernel data seg and extra seg
-	movl	%eax, %ds
-	movl	%eax, %es
-	#call	syscall_handler
-	addl	$4, %esp	# remove the old eax
-	jmp	syscall_return	
+    pushl	%ds		# push segment registers
+    pushl	%es
+    pushl	%fs
+    pushl	%gs
+    pushl	%ebp		# push general regs
+    pushl	%edi
+    pushl	%esi
+    pushl	%edx
+    pushl	%ecx
+    pushl	%ebx
+    pushl	%eax		# note these *are* the syscall args
+    movl	$2*8, %eax	# switch to kernel data seg and extra seg
+    movl	%eax, %ds
+    movl	%eax, %es
+    call	syscall_handler
+    addl	$4, %esp	# remove the old eax
+    jmp	syscall_return	
 
 .global intr_return
 intr_return:
-	popl	%eax
+    popl	%eax
 syscall_return:	
-	popl	%ebx
-	popl	%ecx
-	popl	%edx
-	popl	%esi
-	popl	%edi
-	popl	%ebp
-	popl	%gs
-	popl	%fs
-	popl	%es
-	popl	%ds
-	addl	$4, %esp	# remove interrupt num
-	addl	$4, %esp	# remove detail code
-	iret			# iret gets the intr context
+    popl	%ebx
+    popl	%ecx
+    popl	%edx
+    popl	%esi
+    popl	%edi
+    popl	%ebp
+    popl	%gs
+    popl	%fs
+    popl	%es
+    popl	%ds
+    addl	$4, %esp	# remove interrupt num
+    addl	$4, %esp	# remove detail code
+    iret			# iret gets the intr context
 			
 .align 2
 idt:
-	.word	intr00-_start,1*8,0x8e00,0x0001
-	.word	intr01-_start,1*8,0x8e00,0x0001
-	.word	intr02-_start,1*8,0x8e00,0x0001
-	.word	intr03-_start,1*8,0x8e00,0x0001
-	.word	intr04-_start,1*8,0x8e00,0x0001
-	.word	intr05-_start,1*8,0x8e00,0x0001
-	.word	intr06-_start,1*8,0x8e00,0x0001
-	.word	intr07-_start,1*8,0x8e00,0x0001
-	.word	intr08-_start,1*8,0x8e00,0x0001
-	.word	intr09-_start,1*8,0x8e00,0x0001
-	.word	intr10-_start,1*8,0x8e00,0x0001
-	.word	intr11-_start,1*8,0x8e00,0x0001
-	.word	intr12-_start,1*8,0x8e00,0x0001
-	.word	intr13-_start,1*8,0x8e00,0x0001
-	.word	intr14-_start,1*8,0x8e00,0x0001
-	.word	intr15-_start,1*8,0x8e00,0x0001
-	.word	intr16-_start,1*8,0x8e00,0x0001
-	.word	intr17-_start,1*8,0x8e00,0x0001
-	.word	intr18-_start,1*8,0x8e00,0x0001
-	.word	intr19-_start,1*8,0x8e00,0x0001
-	.word	intr20-_start,1*8,0x8e00,0x0001
-	.word	intr21-_start,1*8,0x8e00,0x0001
-	.word	intr22-_start,1*8,0x8e00,0x0001
-	.word	intr23-_start,1*8,0x8e00,0x0001
-	.word	intr24-_start,1*8,0x8e00,0x0001
-	.word	intr25-_start,1*8,0x8e00,0x0001
-	.word	intr26-_start,1*8,0x8e00,0x0001
-	.word	intr27-_start,1*8,0x8e00,0x0001
-	.word	intr28-_start,1*8,0x8e00,0x0001
-	.word	intr29-_start,1*8,0x8e00,0x0001
-	.word	intr30-_start,1*8,0x8e00,0x0001
-	.word	intr31-_start,1*8,0x8e00,0x0001
-	.word	intr32-_start,1*8,0x8e00,0x0001
-	.word	intr33-_start,1*8,0x8e00,0x0001
-	.word	intr34-_start,1*8,0x8e00,0x0001
-	.word	intr35-_start,1*8,0x8e00,0x0001
-	.word	intr36-_start,1*8,0x8e00,0x0001
-	.word	intr37-_start,1*8,0x8e00,0x0001
-	.word	intr38-_start,1*8,0x8e00,0x0001
-	.word	intr39-_start,1*8,0x8e00,0x0001
-	.word	intr40-_start,1*8,0x8e00,0x0001
-	.word	intr41-_start,1*8,0x8e00,0x0001
-	.word	intr42-_start,1*8,0x8e00,0x0001
-	.word	intr43-_start,1*8,0x8e00,0x0001
-	.word	intr44-_start,1*8,0x8e00,0x0001
-	.word	intr45-_start,1*8,0x8e00,0x0001
-	.word	intr46-_start,1*8,0x8e00,0x0001
-	.word	intr47-_start,1*8,0x8e00,0x0001
-	.word	intr48-_start,1*8,0xee00,0x0001
+    # 0x0001 is the idt segment, because kernel is at 0x10000 => 0x1000 << 8 = 0x10000
+    .word	intr00-_start,1*8,0x8e00,0x0001
+    .word	intr01-_start,1*8,0x8e00,0x0001
+    .word	intr02-_start,1*8,0x8e00,0x0001
+    .word	intr03-_start,1*8,0x8e00,0x0001
+    .word	intr04-_start,1*8,0x8e00,0x0001
+    .word	intr05-_start,1*8,0x8e00,0x0001
+    .word	intr06-_start,1*8,0x8e00,0x0001
+    .word	intr07-_start,1*8,0x8e00,0x0001
+    .word	intr08-_start,1*8,0x8e00,0x0001
+    .word	intr09-_start,1*8,0x8e00,0x0001
+    .word	intr10-_start,1*8,0x8e00,0x0001
+    .word	intr11-_start,1*8,0x8e00,0x0001
+    .word	intr12-_start,1*8,0x8e00,0x0001
+    .word	intr13-_start,1*8,0x8e00,0x0001
+    .word	intr14-_start,1*8,0x8e00,0x0001
+    .word	intr15-_start,1*8,0x8e00,0x0001
+    .word	intr16-_start,1*8,0x8e00,0x0001
+    .word	intr17-_start,1*8,0x8e00,0x0001
+    .word	intr18-_start,1*8,0x8e00,0x0001
+    .word	intr19-_start,1*8,0x8e00,0x0001
+    .word	intr20-_start,1*8,0x8e00,0x0001
+    .word	intr21-_start,1*8,0x8e00,0x0001
+    .word	intr22-_start,1*8,0x8e00,0x0001
+    .word	intr23-_start,1*8,0x8e00,0x0001
+    .word	intr24-_start,1*8,0x8e00,0x0001
+    .word	intr25-_start,1*8,0x8e00,0x0001
+    .word	intr26-_start,1*8,0x8e00,0x0001
+    .word	intr27-_start,1*8,0x8e00,0x0001
+    .word	intr28-_start,1*8,0x8e00,0x0001
+    .word	intr29-_start,1*8,0x8e00,0x0001
+    .word	intr30-_start,1*8,0x8e00,0x0001
+    .word	intr31-_start,1*8,0x8e00,0x0001
+    .word	intr32-_start,1*8,0x8e00,0x0001
+    .word	intr33-_start,1*8,0x8e00,0x0001
+    .word	intr34-_start,1*8,0x8e00,0x0001
+    .word	intr35-_start,1*8,0x8e00,0x0001
+    .word	intr36-_start,1*8,0x8e00,0x0001
+    .word	intr37-_start,1*8,0x8e00,0x0001
+    .word	intr38-_start,1*8,0x8e00,0x0001
+    .word	intr39-_start,1*8,0x8e00,0x0001
+    .word	intr40-_start,1*8,0x8e00,0x0001
+    .word	intr41-_start,1*8,0x8e00,0x0001
+    .word	intr42-_start,1*8,0x8e00,0x0001
+    .word	intr43-_start,1*8,0x8e00,0x0001
+    .word	intr44-_start,1*8,0x8e00,0x0001
+    .word	intr45-_start,1*8,0x8e00,0x0001
+    .word	intr46-_start,1*8,0x8e00,0x0001
+    .word	intr47-_start,1*8,0x8e00,0x0001
+    .word	intr48-_start,1*8,0xee00,0x0001
 	
 # This is the initializer for the global interrupt table.
 # It simply gives the size and location of the interrupt table
 	
 idt_init:
-	.word	idt_init-idt
-	.long	idt
+    .word	idt_init-idt
+    .long	idt
 
 # This is the initializer for an invalid interrupt table.
 # Its only purpose is to assist with the reboot routine.
 	
 idt_invalid:
-	.word	0
-	.long	0
+    .word	0
+    .long	0
