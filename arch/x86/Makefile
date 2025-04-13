@@ -29,7 +29,7 @@ boot/kernelcore.o:
 	gcc -m32 -c -g ${CFLAGS} -I ../include boot/kernelcore.S -o $@
 
 boot/kernelcore_64.o:
-	gcc -m64 -masm=intel -c -g ${CFLAGS} -I ../include boot/kernelcore_64.S -o $@
+	gcc -m64 -c -g ${CFLAGS} -I ../include boot/kernelcore_64.S -o $@
 
 boot/kernelsig.o:
 	gcc -m32 -c -g ${CFLAGS} -I ../include boot/kernelsig.S -o $@

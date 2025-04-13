@@ -45,9 +45,58 @@ _realstart:
 
 .code32
 pm_start:
+
+    #setup long mode
+    call setup_page_tables 
+    call enable_paging
+
     hlt
     #jmp lm_jmp
     #ljmpl $(1*8), $(kernel_main)
+
+.global setup_page_tables
+.global setup_page_loop
+setup_page_tables:
+  mov page_table_l3, %eax
+  or $0b11, %eax
+  mov %eax, (page_table_l4)
+
+  mov page_table_l2, %eax
+  or $0b11, %eax
+  mov %eax, (page_table_l3)
+
+  mov $0, %ecx
+
+setup_page_loop:
+
+  mov $0x200000, %eax
+  mul %ecx
+  or $0b10000011, %eax
+  movl %eax, page_table_l2(,%ecx,8) 
+
+  inc %ecx
+  cmp $512, %ecx
+  jne setup_page_loop
+
+  ret
+
+enable_paging:
+  mov page_table_l4, %eax
+  mov %eax, %cr3
+  hlt
+  mov %cr4, %eax
+  or $1 << 5, %eax
+
+  mov %ecx, 0xC0000080
+  rdmsr
+  or $1 << 8, %eax
+  wrmsr
+
+  mov %cr0, %eax
+  or $1 << 31, %eax
+  mov %eax, %cr0
+
+  ret
 
 .align 16
 .global gdt
@@ -251,3 +300,21 @@ idt_init:
 idt_invalid:
 	.word	0
 	.long	0
+
+.bss
+.align 4096
+page_table_l4:
+  .space 4096
+page_table_l3:
+  .space 4096
+page_table_l2:
+  .space 4096
+
+.section .rodata 
+gdt64:
+  .word 0,0,0,0
+  .word 0x0000,0x0000,0x0180,0x0029
+gdt64_init:
+  .word	gdt64_init-gdt64
+  .long	gdt64
+
