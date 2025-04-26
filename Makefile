@@ -26,7 +26,7 @@ build-kernel:
 	$(MAKE) -C kernel
 
 build-libs:
-	$(MAKE) -C libs
+	$(MAKE) -C lib
 
 build-arch:
 	$(MAKE) -C arch/x86

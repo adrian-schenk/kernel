@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include "interrupt.h"
+#include "keyboard.h"
 #include "memlayout.h"
 #include "kmalloc.h"
 #include "printf.h"
@@ -7,6 +9,7 @@
 #include "graphics.h"
 #include "globals.h"
 #include "vesa.h"
+#include "pic.h"
 
 uint16_t video_xbytes = 3072;
 uint16_t video_xres = 1024;
@@ -19,6 +22,11 @@ void kernel_main() {
 
     console_t* console = console_init();
     console_setref(console);
+
+    pic_init(32,40);
+    
+    interrupt_init();
+    keyboard_init();
 
     for(int i = 0; i < video_yres; i++){
         graphics_draw_pixel(i,i, 0xffffffff);

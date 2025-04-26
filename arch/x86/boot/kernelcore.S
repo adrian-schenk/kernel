@@ -21,6 +21,9 @@ _realstart:
     orb $2, %al
     outb %al, $0x92
 
+    cli
+    # Load IDT
+    lidt (idt_init-_start)
     # Load GDT
     lgdt (gdt_init-_start)
 
