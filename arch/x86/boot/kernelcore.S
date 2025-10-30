@@ -45,7 +45,7 @@ _realstart:
 
 .code32
 pm_start:
-
+    hlt 
     #setup long mode
     call setup_page_tables 
     call enable_paging
@@ -83,7 +83,7 @@ setup_page_loop:
 enable_paging:
   mov page_table_l4, %eax
   mov %eax, %cr3
-  hlt
+
   mov %cr4, %eax
   or $1 << 5, %eax
 
