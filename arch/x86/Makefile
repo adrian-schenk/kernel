@@ -36,6 +36,7 @@ boot/kernelsig.o:
 
 boot/entrysig.o:
 	gcc -m32 -c -g ${CFLAGS} -I ../include boot/entrysig.S -o $@
+
 %.o: %.c
 	${CC} ${CFLAGS} -I ../include $< -o $@
 
