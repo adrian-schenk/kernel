@@ -1,4 +1,19 @@
-#include "../../../kernel/memlayout.h"
+#include <memlayout.h>
+
+/*
+    * This file is part of the xv6 operating system, adapted for x86-64 architecture.
+    * 
+    * This file contains the assembly code for the bootloader, which is responsible
+    * for loading the kernel into memory and transitioning from real mode to protected mode.
+    *
+    * The bootloader performs the following steps:
+    * 1. Sets up the stack and segments.
+    * 2. Loads the kernelcore from the disk into memory. (Kernel is loaded via kernelcore.S)
+    *
+    * Note: This code assumes a simple flat memory model and does not include
+    * error handling or support for multiple disks or filesystems.
+    
+*/
 
 .global _start
 
@@ -74,7 +89,7 @@ load_checksig:
 
     movw (%bx, %si), %ax
 
-    cmpw $0xaa55, %ax
+    cmpw $BOOT_SIG, %ax
 
     jne load
 

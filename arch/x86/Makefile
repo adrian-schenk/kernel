@@ -23,13 +23,13 @@ build_kernelsig: boot/kernelsig.o boot/entrysig.o
 
 #Bootloader should be compiled for 32 bit, rest can be compiled for 64 bit
 boot/boot.o:
-	gcc -m32 -c -g ${CFLAGS} -I ../include boot/boot.S -o $@
+	gcc -m32 -c -g ${CFLAGS} -I ../include -I ../../kernel boot/boot.S -o $@
 
 boot/kernelcore.o:
-	gcc -m32 -c -g ${CFLAGS} -I ../include boot/kernelcore.S -o $@
+	gcc -m32 -c -g ${CFLAGS} -I ../include -I ../../kernel boot/kernelcore.S -o $@
 
 boot/kernelcore_64.o:
-	gcc -m64 -c -g ${CFLAGS} -I ../include boot/kernelcore_64.S -o $@
+	gcc -m64 -c -g ${CFLAGS} -I ../include -I ../../kernel boot/kernelcore_64.S -o $@
 
 boot/kernelsig.o:
 	gcc -m32 -c -g ${CFLAGS} -I ../include boot/kernelsig.S -o $@
