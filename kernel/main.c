@@ -17,12 +17,6 @@ void kernel_main() {
 
     kmalloc_init((char*) KMALLOC_START, KMALLOC_LENGTH);
 
-    console_t* console = console_init();
-    console_setref(console);
-
-    for(int i = 0; i < video_yres; i++){
-        graphics_draw_pixel(i,i, 0xffffffff);
-    }
     for(;;){
         
     }

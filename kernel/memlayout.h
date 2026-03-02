@@ -8,12 +8,12 @@
 #define INTERRUPT_STACK_SEGMENT 0x0000
 #define INTERRUPT_STACK_OFFSET  0xfff0
 
-#define PM_START        0x10000
-#define PM_SEGMENT      0x1000
+#define PM_START        0x1000
+#define PM_SEGMENT      0x0100
 #define PM_OFFSET       0x0000
 
-#define KERNEL_START   0x100000
-#define KERNEL_SEGMENT 0x10000
+#define KERNEL_START   0x10000
+#define KERNEL_SEGMENT 0x1000
 #define KERNEL_OFFSET  0x0000
 
 #define KMALLOC_START 0x100000

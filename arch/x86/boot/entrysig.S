@@ -2,7 +2,7 @@
 .text
 
 .org 496
-.long 0xaa55aa55
-.long 0xaa55aa55
-.long 0xaa55aa55
-.long 0xaa55aa55
+.long 0x11221122
+.long 0x11221122
+.long 0x11221122
+.long 0x11221122

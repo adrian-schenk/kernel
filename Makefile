@@ -3,14 +3,13 @@
 all: build
 
 run:
-	qemu-system-x86_64 -drive format=raw,file=floppy.img -vga std -monitor stdio -cpu qemu64 
+	qemu-system-x86_64 -drive format=raw,file=floppy.img -vga std -monitor stdio -cpu qemu64
 
 build: build-arch build-kernel
 	# Write the boot sector to the first sector
 	dd if=arch/x86/boot/boot.bin of=boot_aligned.bin bs=512 count=1 conv=notrunc
 
 	# Write the kernel to the image starting from the second sector
-	# put kernelcore (32bit) into second block. assume its not bigger than 512 bytes
 	dd if=arch/x86/boot/kernelcore.bin of=kernelcore_aligned.bin bs=512 conv=sync
 	dd if=arch/x86/boot/entrysig.bin of=entrysig_aligned.bin bs=512 conv=sync
 	dd if=arch/x86/boot/kernelsig.bin of=kernelsig_aligned.bin bs=512 conv=sync
