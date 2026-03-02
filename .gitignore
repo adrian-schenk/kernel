@@ -1,3 +1,5 @@
 *.[oa]
 *.bin
 *.img
+.vscode/
+*.elf
