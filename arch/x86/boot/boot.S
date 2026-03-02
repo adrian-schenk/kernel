@@ -1,4 +1,4 @@
-#include "../../../kernel/memlayout.h"
+#include <memlayout.h>
 
 .global _start
 
@@ -8,100 +8,70 @@
 ljmp $BOOTBLOCK_SEGMENT, $_start
 
 _start:
-    cli                 # Disable interrupts
-    cld				    # clear the direction flag
-	mov	%cs, %ax		# set all segments to code
-	mov	%ax, %ds
-	mov	%ax, %es
+    cli
+    cld
 
-    mov	$INTERRUPT_STACK_SEGMENT, %ax     # set up the stack
-	mov	%ax, %ss
-	mov	$INTERRUPT_STACK_OFFSET, %sp
+    # Set segments correctly
+    mov %cs, %ax
+    mov %ax, %ds
+    mov %ax, %es
 
-    # Print a message
+    # Setup stack
+    mov $INTERRUPT_STACK_SEGMENT, %ax
+    mov %ax, %ss
+    mov $INTERRUPT_STACK_OFFSET, %sp
+
+    # Print message
     mov $msg, %si
     call print_string
 
-    mov $KERNEL_SEGMENT, %ax # Destination Segment -> es = KERNEL_SEGMENT
-    mov %ax, %es
-
-    movb $0x02, %cl      # Sector number
-
 load:
-    mov %cs, %ax        # reset ds segment register
-    mov %ax, %ds        
-    movw (last_sector), %bx    # Destination offset within segment (ES:BX)
-    movb $0x02, %ah      # BIOS read sector function
-    movb $0x01, %al      # Number of sectors to read (1 sector)
-    movb $0x00, %ch      # Cylinder number
-    movb $0x00, %dh      # Head number
-    int $0x13            # BIOS interrupt
-
-    jc disk_error        # Jump to disk_error on carry flag set
-    
-    jmp loadnext
-
-loadnext:
-    mov (last_sector), %bx
-    add $512, %bx
-    mov %bx, (last_sector)
-
-    inc %cl
-
-    mov $KERNEL_SEGMENT, %ax
+    # DS must point to dap
+    mov %cs, %ax
     mov %ax, %ds
+    mov $dap_kernelcore, %si
 
-    mov $-16, %si
+    mov $0x42, %ah
+    mov $0x80, %dl
 
-    jmp load_checksig
+    int $0x13
+    jc disk_error
 
-loaddone:
-    mov $KERNEL_SEGMENT, %ax
-    mov %ax, %ds
-    mov %ax, %ss
-    mov %ax, %es
-    mov %ax, %fs
-    mov %ax, %gs
+    mov $dap_kernel, %si
 
-    mov (sectors_loaded), %ax
+    mov $0x42, %ah
+    mov $0x80, %dl
 
-    ljmp $KERNEL_SEGMENT, $KERNEL_OFFSET            # Jump to the loaded code (adjust as needed)
+    int $0x13
+    jc disk_error_kernel
 
-load_checksig:
+    ljmp $PM_SEGMENT, $PM_OFFSET # jump to kernelcore at 0x10000 physical
 
-    cmp $0, %si
-    je loaddone
-
-    movw (%bx, %si), %ax
-
-    cmpw $0x55aa, %ax
-
-    jne load
-
-    add $2, %si         # calc new offset
-
-    jmp load_checksig    # 55aa found -> next iteration
+success:
+    mov $ok_msg, %si
+    call print_string
+    hlt
 
 disk_error:
-    # Print error message and halt
     mov $err_msg, %si
     call print_string
     hlt
 
-#
-# Helper Functions
-#
+disk_error_kernel:
+    mov $err_msg_kernel, %si
+    call print_string
+    hlt
 
-hlt:
-    jmp .
-
+#
+# print_string
+#
 print_string:
     .loop:
-        lodsb            # Load byte from DS:SI into AL
-        test %al, %al    # Test if AL is zero (end of string)
+        lodsb
+        test %al, %al
         jz .done
-        mov $0x0E, %ah   # BIOS teletype function
-        int $0x10        # BIOS interrupt
+        mov $0x0E, %ah
+        int $0x10
         jmp .loop
     .done:
         ret
@@ -109,22 +79,54 @@ print_string:
 #
 # Strings
 #
-
 msg:
-    .asciz "Loading Kernelcore..."
+    .asciz "Loading Kernelcore...\r\n"
+
+ok_msg:
+    .asciz "Disk read OK\r\n"
 
 err_msg:
-    .asciz "Disk read error!"
+    .asciz "Disk read error (Kernelcore)!\r\n"
+
+err_msg_kernel:
+    .asciz "Disk read error (Kernel)!\r\n"
 
 #
-# Data
+# Disk Address Packet
+# Loads kernel to physical 0x10000
 #
+dap_kernelcore:
+    .byte 0x10          # size (16 bytes)
+    .byte 0x00          # reserved
 
-sectors_loaded:
-    .word 0x0000
+    .word 0x0001        # sectors to read (will be changed)
 
-last_sector:
-    .word KERNEL_OFFSET
+    .word 0x1000        # offset
+    .word 0x0000        # segment → 0x1000 physical
+
+    .long 0x00000001    # LBA low (sector 1)
+    .long 0x00000000    # LBA high
+
+dap_kernel:
+    .byte 0x10          # size (16 bytes)
+    .byte 0x00          # reserved
+
+    .word 0x0004        # sectors to read (will be changed)
+
+    .word 0x0000        # offset
+    .word 0x1000        # segment → 0x10000 physical
+
+    .long 0x00000003    # LBA low (sector 3)
+    .long 0x00000000    # LBA high
+
+kernelcore_size_checked:
+    .byte 0x00
+
+kernelcore_size:
+    .long 0x00000001    # 1 sector
+
+kernel_size:
+    .long 0x00000001    # 1 sector
 
 .org 510
-.byte 0x55, 0xAA
+.word 0xAA55
