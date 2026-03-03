@@ -15,6 +15,8 @@ uint8_t* video_buffer = 0xFD000000;
 
 void kernel_main() {
 
+    struct ap_boot_info* boot_info = (struct ap_boot_info*) AP_BOOT_INFO_ADDR;
+
     kmalloc_init((char*) KMALLOC_START, KMALLOC_LENGTH);
 
     for(;;){

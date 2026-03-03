@@ -51,14 +51,17 @@ _realstart:
 pm_start:
     #setup long mode
 
+    .globl set_ap_boot_info
+    call set_ap_boot_info
+
     call setup_page_tables 
     call enable_paging
-    
+
     # were in long mode now
 
     # setup gdt for long mode
     lgdt gdt64_init
-
+    
 	ljmpl $0x08, $0x10000
 
 .global setup_page_tables
@@ -140,6 +143,7 @@ gdt64_init:
 
 .bss
 .align 4096
+.global page_table_l4
 page_table_l4:
   .space 4096
 page_table_l3:
