@@ -1,5 +1,3 @@
-based on dthain/basekernel
-
 ## Memory Layout
 
 | Region | Start | End | Size | Purpose |
