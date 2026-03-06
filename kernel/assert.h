@@ -1,0 +1,1 @@
+#define assert(expr) if (!(expr)) asm volatile("hlt")
