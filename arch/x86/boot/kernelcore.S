@@ -43,7 +43,7 @@ _realstart:
 
     mov	$INTERRUPT_STACK_TOP, %sp    # set up initial C stack
     mov	$INTERRUPT_STACK_TOP, %bp    # set up initial C stack
-    
+
     # Far jump to flush prefetch queue and switch to protected mode
     ljmpl $(1*8), $pm_start
 
@@ -59,22 +59,26 @@ pm_start:
 
     # were in long mode now
 
-    # setup gdt for long mode
+    # setup gdt for 64 bit
     lgdt gdt64_init
     
-	ljmpl $0x08, $0x10000
+    # load TSS
+    mov $0x18, %ax
+    ltr %ax
+
+	ljmpl $0x08, $0x10000 # kernel_main
 
 .global setup_page_tables
 .global setup_page_loop
 
 setup_page_tables:
-  	mov $page_table_l3, %eax
-  	or $0b11, %eax
-  	mov %eax, (page_table_l4)
-
   	mov $page_table_l2, %eax
   	or $0b11, %eax
-  	mov %eax, (page_table_l3)
+  	mov %eax, (page_table_l1)
+
+  	mov $page_table_l3, %eax
+  	or $0b11, %eax
+  	mov %eax, (page_table_l2)
 
   	mov $0, %ecx
 
@@ -83,7 +87,7 @@ setup_page_tables:
 
   	mul %ecx
   	or $0b10000011, %eax
-  	mov %eax, page_table_l2(, %ecx, 8)
+  	mov %eax, page_table_l3(, %ecx, 8)
 
   	inc %ecx
   	cmp $512, %ecx
@@ -92,7 +96,7 @@ setup_page_tables:
   	ret
 
 enable_paging:
-  	mov $page_table_l4, %eax
+  	mov $page_table_l1, %eax
   	mov %eax, %cr3
 
   	mov %cr4, %eax
@@ -133,20 +137,22 @@ gdt64:
     .quad 0x0000000000000000    # null descriptor
     .quad 0x00A09A0000000000    # 64-bit kernel code segment
     .quad 0x00A0920000000000    # 64-bit kernel data segment
+    .quad 0x0000890070000068    # TSS (0x7000)
+    .quad 0x0000000000000000
 
 gdt64_end:
 
 # 64-bit GDTR descriptor (10 bytes)
 gdt64_init:
-    .word gdt64_end - gdt64  # limit (size - 1)
+    .word gdt64_end - gdt64  # limit (size)
     .long gdt64, 0x0000
 
 .bss
 .align 4096
-.global page_table_l4
-page_table_l4:
-  .space 4096
-page_table_l3:
+.global page_table_l1
+page_table_l1:
   .space 4096
 page_table_l2:
+  .space 4096
+page_table_l3:
   .space 4096
