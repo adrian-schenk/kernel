@@ -23,3 +23,7 @@
 
 #define BOOT_SIG 0x1122
 #define KERNEL_SIG 0x1133
+
+#define AP_BOOT_INFO_ADDR 0x8000
+
+#define TSS_REGION 0x7000
