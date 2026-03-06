@@ -23,5 +23,16 @@ struct virt_address{
     uint64_t null : 16;
 };
 
-int pt_map_page(uint64_t virt, uint64_t phys, uint64_t flags);
+struct page_table {
+    struct page_table_entry entries[512];
+} __attribute__((packed));
+
+extern struct page_table _l1 __attribute__((aligned(4096)));
+extern struct page_table _l2 __attribute__((aligned(4096)));
+extern struct page_table _l3 __attribute__((aligned(4096)));
+extern struct page_table _l4 __attribute__((aligned(4096)));
+
+int pt_map_page(uint64_t virt, uint64_t phys);
 int pt_map_page_huge(uint64_t virt, uint64_t phys, uint64_t flags);
+
+void pt_setup();
