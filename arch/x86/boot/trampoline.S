@@ -2,6 +2,10 @@
 .text
 .global _start
 
+/*
+    Will be loaded to 0x8000
+*/
+
 _start:
     mov	%cs, %ax		# Set up the extra segment
     mov	%ax, %es		# with the data segment
