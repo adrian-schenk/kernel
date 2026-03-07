@@ -8,6 +8,8 @@
 #define INTERRUPT_STACK_SEGMENT 0x0000
 #define INTERRUPT_STACK_OFFSET  0xfff0
 
+#define AP_STACK_TOP 0xCFF0
+
 #define PM_START        0x1000
 #define PM_SEGMENT      0x0100
 #define PM_OFFSET       0x0000

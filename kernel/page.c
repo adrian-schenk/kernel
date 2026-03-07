@@ -91,4 +91,9 @@ void pt_setup() {
         : "r" (&_l1)
         : "memory"
     );
+
+    boot_info->pt_ptr.l1 = &_l1;
+    boot_info->pt_ptr.l2 = &_l2;
+    boot_info->pt_ptr.l3 = &_l3;
+    boot_info->pt_ptr.l4 = &_l4;
 }

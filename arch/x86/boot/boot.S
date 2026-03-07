@@ -131,8 +131,8 @@ dap_trampoline:
 
     .word 0x0000        # sectors to read (will be changed by scripts/build.py)
 
-    .word 0x8000        # offset
-    .word 0x0000        # segment → 0x0000 physical
+    .word 0x0000        # offset
+    .word 0x1000        # segment → 0x10000 physical
 
     .long 0x00000000    # LBA low (will be changed by scripts/build.py)
     .long 0x00000000    # LBA high

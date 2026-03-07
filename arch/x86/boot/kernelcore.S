@@ -98,7 +98,7 @@ setup_page_tables:
 enable_paging:
   	mov $page_table_l1, %eax
   	mov %eax, %cr3
-
+    
   	mov %cr4, %eax
   	or $1 << 5, %eax
   	mov %eax, %cr4

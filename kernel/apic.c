@@ -35,6 +35,14 @@ void apic_setup() {
     pt_map_page(IOAPIC_VIRT, ioapic_base, PAGE_PRESENT | PAGE_WRITABLE | PAGE_PWT | PAGE_PCD);
 }
 
+void apic_write(uint16_t reg, uint32_t value) {
+    mmio_writel(APIC_VIRT + reg, value);
+}
+
+uint32_t apic_read(uint16_t reg) {
+    return mmio_readl(APIC_VIRT + reg);
+}
+
 uint32_t ioapic_read(uint32_t reg) {
     uint32_t volatile *ioapic = (uint32_t volatile*) IOAPIC_VIRT;
     ioapic[0] = (reg & 0xff);
