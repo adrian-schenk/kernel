@@ -27,6 +27,8 @@ void kernel_main() {
 
     kmalloc_init((char*) KMALLOC_START, KMALLOC_LENGTH);
 
+    pt_setup();
+
     struct cpu_features cpu_features = __get_cpu_features();
 
     idt_setup();
