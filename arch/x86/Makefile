@@ -18,7 +18,7 @@ build_pmentry: boot/kernelcore.o boot/pm.o
 	ld -m elf_i386 -Ttext 0x1000 --oformat binary -o boot/kernelcore.bin $^
 
 build_trampoline: boot/trampoline.o 
-	ld -m elf_i386 -Ttext 0x8000 --oformat binary -o boot/trampoline.bin $<
+	ld -m elf_i386 -Ttext 0x10000 --oformat binary -o boot/trampoline.bin $<
 
 build_kernelentry: boot/kernelcore_64.o
 

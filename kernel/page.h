@@ -2,6 +2,17 @@
 #include <stdint.h>
 #include "boot_info.h"
 
+#define PAGE_PRESENT 0x1
+#define PAGE_WRITABLE 0x2
+#define PAGE_USER 0x4
+#define PAGE_PWT 0x8
+#define PAGE_PCD 0x10
+#define PAGE_ACCESSED 0x20
+#define PAGE_DIRTY 0x40
+#define PAGE_HUGE 0x80
+#define PAGE_GLOBAL 0x100
+#define PAGE_NO_EXECUTE 0x8000000000000000
+
 struct page_table_entry{
     uint64_t present    : 1;   // Bit 0
     uint64_t writable   : 1;   // Bit 1
@@ -23,5 +34,16 @@ struct virt_address{
     uint64_t null : 16;
 };
 
+struct page_table {
+    struct page_table_entry entries[512];
+} __attribute__((packed));
+
+extern struct page_table _l1 __attribute__((aligned(4096)));
+extern struct page_table _l2 __attribute__((aligned(4096)));
+extern struct page_table _l3 __attribute__((aligned(4096)));
+extern struct page_table _l4 __attribute__((aligned(4096)));
+
 int pt_map_page(uint64_t virt, uint64_t phys, uint64_t flags);
 int pt_map_page_huge(uint64_t virt, uint64_t phys, uint64_t flags);
+
+void pt_setup();

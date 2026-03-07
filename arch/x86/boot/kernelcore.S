@@ -66,7 +66,7 @@ pm_start:
     mov $0x18, %ax
     ltr %ax
 
-	ljmpl $0x08, $0x10000 # kernel_main
+	ljmpl $0x08, $0x80000 # kernel_main
 
 .global setup_page_tables
 .global setup_page_loop
@@ -98,7 +98,7 @@ setup_page_tables:
 enable_paging:
   	mov $page_table_l1, %eax
   	mov %eax, %cr3
-
+    
   	mov %cr4, %eax
   	or $1 << 5, %eax
   	mov %eax, %cr4
