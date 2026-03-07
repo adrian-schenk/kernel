@@ -3,10 +3,11 @@
 .global _start
 
 /*
-    Will be loaded to 0x8000
+    Will be loaded to 0x10000
 */
 
 _start:
+hlt
     mov	%cs, %ax		# Set up the extra segment
     mov	%ax, %es		# with the data segment
     mov	%ax, %ds        # Set up the data segment
