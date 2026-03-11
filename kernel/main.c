@@ -15,6 +15,7 @@
 #include "apic.h"
 #include "page.h"
 #include "smp.h"
+#include "sdt.h"
 
 uint16_t video_xbytes = 3072;
 uint16_t video_xres = 1024;
@@ -35,7 +36,10 @@ void kernel_main() {
     boot_info->stack_ptr = &tmp_stack[4095];
 
     struct cpu_features cpu_features = __get_cpu_features();
-    
+
+    uint64_t rsdp = find_rsdp();
+    rsdp_setup((struct XSDP_t*) rsdp);
+
     pt_setup();
 
     idt_setup();
