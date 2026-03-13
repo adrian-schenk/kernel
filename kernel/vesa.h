@@ -14,7 +14,7 @@ typedef struct {
 	uint32_t product_rev;		// segment:offset pointer to product revision
 	char reserved[222];		// reserved for future expansion
 	char oem_data[256];		// OEM BIOSes store their strings in this area
-} __attribute__ ((packed))  vbe_info_structure;
+} __attribute__ ((packed))  VbeInfoBlock;
 
 typedef struct {
     uint16_t ModeAttributes;

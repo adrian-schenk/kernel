@@ -4,7 +4,7 @@
 
 extern uint64_t pt_ptr[];
 extern VbeModeInfoBlock vesa_info;
-extern vbe_info_structure vbe_info;
+extern VbeInfoBlock vbe_info;
 
 struct ap_boot_info* boot_info = (struct ap_boot_info*) AP_BOOT_INFO_ADDR;
 
