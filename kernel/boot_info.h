@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include "vesa.h"
 
 extern struct ap_boot_info* boot_info;
 
@@ -15,6 +16,8 @@ struct ap_boot_info {
     uint64_t stack_ptr;       // Initial stack for AP
     uint32_t cpu_id;          // AP ID (optional)
     uint32_t flags;           // e.g., started flag
+    uint64_t vbe_info; // VBE info structure
+    uint64_t vesa_info; // VBE mode-info structure
 } __attribute__((packed));
 
 extern unsigned char tmp_stack[4096];

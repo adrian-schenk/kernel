@@ -16,11 +16,11 @@
 #include "page.h"
 #include "smp.h"
 #include "sdt.h"
+#include "vesa.h"
+#include "io.h"
 
-uint16_t video_xbytes = 3072;
-uint16_t video_xres = 1024;
-uint16_t video_yres = 768;
-uint8_t* video_buffer = (uint8_t*) 0xB80F0;
+uint16_t video_xbytes = 1024 * 3, video_xres = 1024, video_yres = 768;
+uint8_t* video_buffer = (uint8_t*) 0xA0000;
 
 struct ap_boot_info* boot_info = (struct ap_boot_info*) AP_BOOT_INFO_ADDR;
 
@@ -29,6 +29,16 @@ unsigned char tmp_stack[4096] = {0};
 void ap_kernel_main();
 
 void kernel_main() {
+
+    console_t console = {
+        .width = video_xres / 8,
+        .height = video_yres / 8,
+        .x = 0,
+        .y = 0,
+        .buffer = 0
+    };
+    console_setref(&console);
+    printf("Console initialized.\n");
 
     kmalloc_init((char*) KMALLOC_START, KMALLOC_LENGTH);
 
