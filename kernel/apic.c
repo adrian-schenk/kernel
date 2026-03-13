@@ -3,9 +3,11 @@
 #include "cpu.h"
 #include "page.h"
 #include "mmio.h"
+#include "sdt.h"
+#include "page.h"
 
 #define APIC_VIRT 0xFFEE0000
-#define IOAPIC_VIRT 0xFFEF0000
+#define IOAPIC_VIRT 0xFFEC0000
 
 uint64_t apic_base;
 uint64_t ioapic_base;
@@ -18,21 +20,35 @@ void apic_setup() {
         uint64_t apic_info = __read_msr(0x1B);
         apic_base = apic_info;
 
-        pt_map_page(APIC_VIRT, apic_base, PAGE_PRESENT | PAGE_WRITABLE | PAGE_PWT | PAGE_PCD);
+        pt_map_page_huge(&kernel_pml4, APIC_VIRT, apic_base, PAGE_PRESENT | PAGE_WRITABLE | PAGE_PWT | PAGE_PCD);
 
         uint32_t svr = mmio_readl(APIC_VIRT + 0xF0);
         svr |= 0x100; // Set the APIC Software Enable/Disable bit (bit 8) to enable the APIC.
         svr |= 0xFF; // Set the APIC Version to 0xFF to indicate that the APIC supports xAPIC mode.
-        mmio_writel(APIC_VIRT + 0xF0, svr);
+        mmio_writel(APIC_VIRT + SPURIOUS_INTERRUPT_VECTOR_REGISTER, svr);
+        
+        mmio_writel(APIC_VIRT + LOCAL_DESTINATION_REGISTER, 0x10000000); // set apic id
+        mmio_writel(APIC_VIRT + DESTINATION_FORMAT_REGISTER, 0xF0000000); // flat model
+        
+        pt_map_page_huge(&kernel_pml4, IOAPIC_VIRT, 0xFEC00000, PAGE_PRESENT | PAGE_WRITABLE | PAGE_PWT | PAGE_PCD);
+        
+        uint32_t low =
+        0x21        // vector
+        | (0 << 8)    // fixed delivery
+            | (0 << 11)   // physical destination
+            | (0 << 13)   // active high
+            | (0 << 15)   // edge trigger
+            | (0 << 16);  // unmasked
 
-        mmio_writel(APIC_VIRT + 0xD0, 0x10000000); // set apic id
-        mmio_writel(APIC_VIRT + 0xE0, 0xF0000000); // flat model
+        ioapic_write(0x12, low);
+        uint32_t high = (0 << 24);
+        ioapic_write(0x13, high);
+
     } else {
         // HLT
         for(;;);
     }
 
-    pt_map_page(IOAPIC_VIRT, ioapic_base, PAGE_PRESENT | PAGE_WRITABLE | PAGE_PWT | PAGE_PCD);
 }
 
 void apic_write(uint16_t reg, uint32_t value) {
@@ -50,7 +66,7 @@ uint32_t ioapic_read(uint32_t reg) {
 }
 
 void ioapic_write(uint32_t reg, uint32_t value) {
-    uint32_t volatile*ioapic = (uint32_t volatile*) IOAPIC_VIRT;
+    uint32_t volatile *ioapic = (uint32_t volatile*) IOAPIC_VIRT;
     ioapic[0] = (reg & 0xff);
     ioapic[4] = value;
 }

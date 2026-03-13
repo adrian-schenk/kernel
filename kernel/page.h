@@ -13,7 +13,15 @@
 #define PAGE_GLOBAL 0x100
 #define PAGE_NO_EXECUTE 0x8000000000000000
 
-struct page_table_entry{
+#define PAGE_SIZE 4096
+#define HUGE_PAGE_SIZE 0x200000
+
+#define IDX_PML4(v) (((v) >> 39) & 0x1FF)
+#define IDX_PDPT(v) (((v) >> 30) & 0x1FF)
+#define IDX_PD(v)   (((v) >> 21) & 0x1FF)
+#define IDX_PT(v)   (((v) >> 12) & 0x1FF)
+
+struct page_table_entry {
     uint64_t present    : 1;   // Bit 0
     uint64_t writable   : 1;   // Bit 1
     uint64_t user       : 1;   // Bit 2
@@ -43,7 +51,13 @@ extern struct page_table _l2 __attribute__((aligned(4096)));
 extern struct page_table _l3 __attribute__((aligned(4096)));
 extern struct page_table _l4 __attribute__((aligned(4096)));
 
-int pt_map_page(uint64_t virt, uint64_t phys, uint64_t flags);
-int pt_map_page_huge(uint64_t virt, uint64_t phys, uint64_t flags);
+extern struct page_table kernel_pml4 __attribute__((aligned(4096)));
+
+int pt_map_page(struct page_table *pml4, uint64_t virt, uint64_t phys, uint64_t flags);
+int pt_map_page_huge(struct page_table *pml4, uint64_t virt, uint64_t phys, uint64_t flags);
+
+static struct page_table *get_next_table(struct page_table *current, uint16_t index);
+
+void pt_clear_page(void* p);
 
 void pt_setup();
