@@ -15,3 +15,21 @@ int is_int(char c){
     }
     return 0;
 }
+
+int memcmp4(const char *a, const char *b){
+    for(int i = 0; i < 4; i++){
+        if(a[i] != b[i]){
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int memcmp8(const char *a, const char *b){
+    for(int i = 0; i < 8; i++){
+        if(a[i] != b[i]){
+            return 0;
+        }
+    }
+    return 1;
+}

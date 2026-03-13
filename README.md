@@ -9,5 +9,6 @@
 | AP boot info | `0x8000` | `0x8000` | base address | AP bootstrap info pointer area (`AP_BOOT_INFO_ADDR`) |
 | Trampoline | `0x10000` | `0x10000` | trampoline |
 | 64-bit kernel entry | `0x80000` | `0x80000` | entry address | Kernel entry/load start (`KERNEL_START`) |
-| Kernel heap (`kmalloc`) | `0x100000` | `0x1FFFFF` | `0x100000` (1 MiB) | Early dynamic allocation (`KMALLOC_START`, `KMALLOC_LENGTH`) |
-| Main memory | `0x200000` | up | N/A | General memory start (`MAIN_MEMORY_START`) |
+| Page Table Section | `0x100000` | `0x100000` | entry address | Page Table Allocation Area |
+| Kernel heap (`kmalloc`) | `0x200000` | `0x2FFFFF` | `0x100000` (1 MiB) | Early dynamic allocation (`KMALLOC_START`, `KMALLOC_LENGTH`) |
+| Main memory | `0x300000` | up | N/A | General memory start (`MAIN_MEMORY_START`) |

@@ -8,16 +8,34 @@ _start:
 
 _realstart:
 
-    mov	$0x4f02, %ax
-    movw $0x4118, %bx
-    int	$0x10
-    
     mov	%cs, %ax		# Set up the extra segment
     mov	%ax, %es		# with the data segment
     mov	%ax, %ds        # Set up the data segment
     mov	%ax, %ss        # Set up the stack segment
     mov	%ax, %gs        # Set up the stack segment
     mov	%ax, %fs        # Set up the stack segment
+
+    # Check if VBE is supported
+    mov $0x4f00, %ax
+    mov $(vbe_info-_start), %di
+    int $0x10
+
+    cmp $0x4f, %ax  
+    jne .vbe_not_supported
+
+    # set vesa mode 0x4118 (1024x768x32bpp)
+    mov	$0x4f02, %ax
+    movw $0x4118, %bx
+    int	$0x10
+
+    # query vesa mode info
+	mov	$(vesa_info-_start),%di
+	mov	$0x4f01, %ax
+	mov	%bx, %cx
+	int	$0x10
+    
+    mov %cs, %ax
+    mov %ax, %es
 
     # enable A20 line
     inb $0x92, %al      
@@ -46,6 +64,10 @@ _realstart:
 
     # Far jump to flush prefetch queue and switch to protected mode
     ljmpl $(1*8), $pm_start
+
+.vbe_not_supported:
+    # Handle VBE not supported case (e.g., print message, halt, etc.)
+    hlt
 
 .code32
 pm_start:
@@ -114,6 +136,16 @@ enable_paging:
   	mov %eax, %cr0
 
   	ret
+
+.section .data
+.global vbe_info
+vbe_info:
+    .ascii "VBE2"
+    .space 508
+
+.global vesa_info
+vesa_info:
+    .space 256
 
 .align 16
 .global gdt
