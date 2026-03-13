@@ -19,7 +19,7 @@ void idt_setup() {
     idt_init.base = (uint64_t)&idt;
 
     for (int i = 0; i < 48; i++) {
-        _idt_set_gate(i, 0, 0x08, 0, 0x8E);
+        idt_set_gate(i, 0, 0x08, 0, 0x8E);
     }
 
     idt_set_gate(47, 0, 0x08, 0, 0x8E);
