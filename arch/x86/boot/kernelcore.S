@@ -29,7 +29,7 @@ _realstart:
     int	$0x10
 
     # query vesa mode info
-	mov	$(vesa_info-_start),%di
+	mov	$(video_info-_start),%di
 	mov	$0x4f01, %ax
 	mov	%bx, %cx
 	int	$0x10
@@ -143,9 +143,35 @@ vbe_info:
     .ascii "VBE2"
     .space 508
 
-.global vesa_info
-vesa_info:
-    .space 256
+.align 4
+.global video_info
+video_info:
+	.word	0
+	.byte	0,0
+	.word	0,0,0,0
+	.long	0
+.global video_xbytes
+video_xbytes:
+	.word	0
+.global video_xres
+video_xres:
+	.word	0 
+.global video_yres
+video_yres:
+	.word	0
+	.byte	0,0,0,0,0,0,0,0,0
+	.byte	0,0,0,0,0,0,0,0,0
+.global video_buffer
+video_buffer:
+	.long	0
+	.long	0
+	.word	0
+	.word	0
+	.byte	0,0,0,0,0,0,0,0,0,0
+	.long	0
+.rept 190
+	.byte	0
+.endr
 
 .align 16
 .global gdt
