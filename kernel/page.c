@@ -36,6 +36,8 @@ int pt_map_page(struct page_table *pml4,
 
     pt->entries[i_pt].address  = phys >> 12;
 
+    asm volatile("invlpg (%0)" ::"r"(virt) : "memory");
+    
     return 0;
 }
 
@@ -64,6 +66,9 @@ int pt_map_page_huge(struct page_table *pml4,
     pd->entries[i_pd].huge_page = 1;
 
     pd->entries[i_pd].address = phys >> 21;
+
+    asm volatile("invlpg (%0)" ::"r"(virt) : "memory");
+
 
     return 0;
 }
@@ -106,8 +111,5 @@ void pt_setup() {
         : "memory"
     );
 
-    boot_info->pt_ptr.l1 = &_l1;
-    boot_info->pt_ptr.l2 = &_l2;
-    boot_info->pt_ptr.l3 = &_l3;
-    boot_info->pt_ptr.l4 = &_l4;
+    boot_info->pt_ptr.l1 = &kernel_pml4;
 }
