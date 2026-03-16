@@ -4,10 +4,10 @@
 extern struct ap_boot_info* boot_info;
 
 struct pt_ptr {
-    uint64_t* l1; // Physical address of CR3
-    uint64_t* l2; // Physical address of PDTP
-    uint64_t* l3; // Physical address of PD
-    uint64_t* l4; // Physical address of PT
+    uint64_t l1; // Physical address of CR3
+    uint64_t l2; // Physical address of PDTP
+    uint64_t l3; // Physical address of PD
+    uint64_t l4; // Physical address of PT
 } __attribute__((packed));
 
 struct ap_boot_info {

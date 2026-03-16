@@ -27,10 +27,10 @@ void console_write(char* data, int len){
         }
 
         switch(data[i]){
-            case 0x0:
+            case '\0':
                 return;
                 break;
-            case 0x0A:
+            case '\n':
                 k_console->y++;
                 k_console->x = 0;
                 break;
