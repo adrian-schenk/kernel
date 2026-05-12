@@ -3,10 +3,10 @@
 all: build
 
 run:
-	qemu-system-x86_64 -drive format=raw,file=disk.img -vga std -monitor stdio -cpu qemu64 -smp 4
+	qemu-system-x86_64 -drive format=raw,file=disk.img -vga std -monitor stdio -cpu qemu64 -smp 4 -display gtk
 
 run-gdb:
-	qemu-system-x86_64 -drive format=raw,file=disk.img -vga std -monitor stdio -cpu qemu64 -smp 4 -S -s
+	qemu-system-x86_64 -drive format=raw,file=disk.img -vga std -monitor stdio -cpu qemu64 -smp 4 -S -s -display gtk
 
 build: build-arch build-kernel rebuild-boot
 	# Write the boot sector to the first sector

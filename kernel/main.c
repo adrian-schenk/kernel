@@ -49,6 +49,9 @@ void kernel_main() {
 
     uint64_t rsdp = find_rsdp();
     rsdp_setup((struct XSDP_t*) rsdp);
+    printf("Found RSDP at %p\n", rsdp);
+    printf("Found RSDT at %p\n", RSDT);
+    printf("Found MADT at %p\n", MADT);
 
     pt_setup();
 

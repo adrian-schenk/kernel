@@ -33,6 +33,16 @@ static void printf_puthexstr(int i){
     }
 }
 
+static void printf_putptr(void *ptr){
+    unsigned long value = (unsigned long)ptr;
+    int digits = (int)(sizeof(void *) * 2);
+
+    printf_putstr("0x");
+    for (int j = digits - 1; j >= 0; --j) {
+        printf_putchar(hex_codes[(value >> (j * 4)) & 0xF]);
+    }
+}
+
 static void printf_putuint(unsigned int i){
     int f = 1;
 
@@ -110,6 +120,7 @@ void printf(const char* str, ...){
 	int32_t i;
     float f;
 	char *string;
+    void *ptr;
 
 	va_start(args, str);
 
@@ -151,6 +162,10 @@ void printf(const char* str, ...){
                 case 'x':
                     i = va_arg(args, int);
                     printf_puthexstr(i);
+                    break;
+                case 'p':
+                    ptr = va_arg(args, void*);
+                    printf_putptr(ptr);
                     break;
                 case 's':
                     string = va_arg(args, char*);

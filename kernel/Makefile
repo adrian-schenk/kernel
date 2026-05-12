@@ -16,10 +16,10 @@ $(TARGET): $(OBJ) ../arch/x86/boot/kernelcore_64.o
 	objcopy -O binary kernel.elf kernel.bin
 
 %.o: %.c
-	${CC} ${KERNEL_CCFLAGS}  $< -o $@
+	${CC} ${CFLAGS}  $< -o $@
 
 %.o: %.S
-	${CC} ${KERNEL_CCFLAGS}  $< -o $@
+	${CC} ${CFLAGS}  $< -o $@
 # Clean up generated files
 clean:
 	rm -f $(OBJ) $(TARGET)
