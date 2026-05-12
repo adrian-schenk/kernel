@@ -33,7 +33,7 @@ void rsdp_setup(struct XSDP_t* ptr) {
         struct SDTHeader* xsdt = (struct SDTHeader*) ptr->XsdtAddress;
         XSDT = xsdt;
 
-        struct SDTHeader* madt = xsdt_find(ptr, "APIC");
+        struct SDTHeader* madt = xsdt_find(xsdt, "APIC");
         MADT = madt;
     }
 
@@ -52,9 +52,9 @@ struct SDTHeader *sdt_find(struct SDTHeader* ptr, char* signature) {
 
 }
 
-struct SDTHeader *xsdt_find(struct XSDP_t* ptr, char* signature) {
-    int entries = (ptr->Length - sizeof(struct XSDP_t)) / 8;
-    uint64_t* entry_ptr = (uint64_t*) (ptr + 1);
+struct SDTHeader *xsdt_find(struct SDTHeader* xsdt, char* signature) {
+    int entries = (xsdt->Length - sizeof(struct SDTHeader)) / 8;
+    uint64_t* entry_ptr = (uint64_t*) (xsdt + 1);
     for(int i=0;i<entries;i++) {
         struct SDTHeader* header = (struct SDTHeader*) entry_ptr[i];
         if(memcmp8(header->Signature, signature)) {

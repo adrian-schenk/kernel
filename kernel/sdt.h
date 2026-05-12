@@ -46,5 +46,5 @@ uint64_t find_rsdp();
 int rsdp_checksum(struct RSDP_t* ptr);
 struct SDTHeader *sdt_find(struct SDTHeader* ptr, char* signature);
 
-struct SDTHeader *xsdt_find(struct XSDP_t* ptr, char* signature);
+struct SDTHeader *xsdt_find(struct SDTHeader* xsdt, char* signature);
 int xsdt_checksum(struct XSDP_t* ptr);
