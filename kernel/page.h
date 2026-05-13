@@ -13,7 +13,7 @@
 #define PAGE_GLOBAL 0x100
 #define PAGE_NO_EXECUTE 0x8000000000000000
 
-#define PAGE_SIZE 4096
+#define PAGE_SIZE (1 << 12)
 #define HUGE_PAGE_SIZE 0x200000
 
 #define IDX_PML4(v) (((v) >> 39) & 0x1FF)

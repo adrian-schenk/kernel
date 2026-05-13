@@ -13,23 +13,40 @@ uint64_t find_rsdp() {
     for(int i=0;i<0x100000;i+=16) {
         if(memcmp8(i,"RSD PTR "))return (uint64_t)i;
     }
+
+    return 0;
 }
 
 void rsdp_setup(struct XSDP_t* ptr) {
+    if(ptr == 0) {
+        return;
+    }
+
+    if (rsdp_checksum((struct RSDP_t*) ptr) != 0) {
+        return;
+    }
+
     if(ptr->Revision == 0) {
         // RSDT
-        if (rsdp_checksum((struct RSDP_t*) ptr) != 0) {
-            // invalid checksum
+        if (ptr->RsdtAddress == 0) {
             return;
         }
 
         struct SDTHeader* rsdt = (struct SDTHeader*) ptr->RsdtAddress;
         RSDT = rsdt;
         
-        struct SDTHeader* madt = sdt_find((struct RSDP_t*) rsdt, "APIC");
+        struct SDTHeader* madt = sdt_find(rsdt, "APIC");
         MADT = madt;
     } else {
         // XSDT
+        if (ptr->Length < sizeof(struct XSDP_t) || xsdt_checksum(ptr) != 0) {
+            return;
+        }
+
+        if (ptr->XsdtAddress == 0) {
+            return;
+        }
+
         struct SDTHeader* xsdt = (struct SDTHeader*) ptr->XsdtAddress;
         XSDT = xsdt;
 
@@ -40,6 +57,10 @@ void rsdp_setup(struct XSDP_t* ptr) {
 }
 
 struct SDTHeader *sdt_find(struct SDTHeader* ptr, char* signature) {
+    if (ptr == 0 || ptr->Length < sizeof(struct SDTHeader)) {
+        return 0;
+    }
+    
     int entries = (ptr->Length - sizeof(struct SDTHeader)) / 4;
     uint32_t* entry_ptr = (uint32_t*) (ptr + 1);
     for(int i=0;i<entries;i++) {
@@ -53,6 +74,10 @@ struct SDTHeader *sdt_find(struct SDTHeader* ptr, char* signature) {
 }
 
 struct SDTHeader *xsdt_find(struct SDTHeader* xsdt, char* signature) {
+    if (xsdt == 0 || xsdt->Length < sizeof(struct SDTHeader)) {
+        return 0;
+    }
+
     int entries = (xsdt->Length - sizeof(struct SDTHeader)) / 8;
     uint64_t* entry_ptr = (uint64_t*) (xsdt + 1);
     for(int i=0;i<entries;i++) {

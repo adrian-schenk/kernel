@@ -65,7 +65,7 @@ int pt_map_page_huge(struct page_table *pml4,
     pd->entries[i_pd].writable  = (flags & PAGE_WRITABLE) ? 1 : 0;
     pd->entries[i_pd].huge_page = 1;
 
-    pd->entries[i_pd].address = phys >> 21;
+    pd->entries[i_pd].address = phys >> 12;
 
     asm volatile("invlpg (%0)" ::"r"(virt) : "memory");
 

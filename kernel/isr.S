@@ -76,6 +76,10 @@ intr48:
 intr_handler:
 syscl_handler:
     PUSH_REGS
+    movq 120(%rsp), %rdi
+    movq 128(%rsp), %rsi
+    call interrupt_handler
+    jmp intr_return
     
 intr_return:
 syscl_return:

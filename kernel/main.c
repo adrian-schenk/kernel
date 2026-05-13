@@ -29,14 +29,18 @@ unsigned char tmp_stack[4096] = {0};
 void ap_kernel_main();
 
 void kernel_main() {
+
+    cli();
+
     VbeModeInfoBlock *video_mode = (VbeModeInfoBlock*)boot_info->vesa_info;
 
     video_xres = video_mode->XResolution;
     video_yres = video_mode->YResolution;
     video_xbytes = video_mode->BytesPerScanLine;
     video_buffer = (uint8_t*)(uintptr_t)video_mode->PhysBasePtr;
-
+    
     pt_setup();
+    kmalloc_init((char*) KMALLOC_START, KMALLOC_LENGTH);
 
     console_t console = {
         .width = video_xres / 8,
@@ -48,11 +52,7 @@ void kernel_main() {
     console_setref(&console);
     printf("Console initialized.\n");
     printf("VESA buffer: %p\n", ((VbeModeInfoBlock*)boot_info->vesa_info)->PhysBasePtr);
-    for (int i = 0; i < 5000; i++) {
-        //graphics_draw_pixel(i, 30, 0xffffffff);
-    }
     
-    kmalloc_init((char*) KMALLOC_START, KMALLOC_LENGTH);
 
     boot_info->kernel_entry = (uint32_t) &ap_kernel_main;
     boot_info->stack_ptr = &tmp_stack[4095];
@@ -62,9 +62,9 @@ void kernel_main() {
     uint64_t rsdp = find_rsdp();
     printf("Found RSDP at %p\n", rsdp);
     rsdp_setup((struct XSDP_t*) rsdp);
-    for (;;) {}
     printf("Found RSDT at %p\n", RSDT);
     printf("Found MADT at %p\n", MADT);
+
     idt_setup();
     apic_setup();
     sti();
