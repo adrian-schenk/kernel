@@ -99,9 +99,21 @@ void pt_clear_page(void* p) {
 }
 
 void pt_setup() {
+    VbeModeInfoBlock *video_mode = (VbeModeInfoBlock*)boot_info->vesa_info;
+    uint64_t framebuffer_base = (uint64_t)video_mode->PhysBasePtr;
+    uint64_t framebuffer_size = (uint64_t)video_mode->BytesPerScanLine * video_mode->YResolution;
 
-    for (int i = 0; i < 0x40000000; i += 0x200000) {
+    // identity map first 1gb
+    for (int i = 0; i < 0x40000000; i += HUGE_PAGE_SIZE) {
         pt_map_page_huge(&kernel_pml4, i, i, PAGE_PRESENT | PAGE_WRITABLE);
+    }
+
+
+    for (uint64_t offset = 0; offset < framebuffer_size; offset += PAGE_SIZE) {
+        pt_map_page(&kernel_pml4,
+                    framebuffer_base + offset,
+                    framebuffer_base + offset,
+                    PAGE_PRESENT | PAGE_WRITABLE);
     }
 
     asm volatile (
