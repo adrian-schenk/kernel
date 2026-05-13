@@ -18,6 +18,7 @@
 #include "sdt.h"
 #include "vesa.h"
 #include "io.h"
+#include "timer.h"
 
 uint16_t video_xbytes = 1024 * 3, video_xres = 1024, video_yres = 768;
 uint8_t* video_buffer = (uint8_t*) 0xA0000;
@@ -65,9 +66,12 @@ void kernel_main() {
     printf("Found RSDT at %p\n", RSDT);
     printf("Found MADT at %p\n", MADT);
 
+    interrupts_setup();
     idt_setup();
     apic_setup();
     sti();
+
+    timer_setup();
 
     smp_setup();
 

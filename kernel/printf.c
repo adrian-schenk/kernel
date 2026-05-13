@@ -80,6 +80,27 @@ static void printf_putint(int i){
     }
 }
 
+static void printf_putlong(long long i){
+    int f = 1;
+
+    if(i < 0){
+        printf_putchar('-');
+        i *= -1;
+    }
+
+    while((i / f) >= 10){
+        f *= 10;
+    }
+
+    int r;
+    while(f > 0){
+        r = i / f;
+        printf_putchar('0' + r);
+        i = i - (r * f);
+        f /= 10;
+    }
+}
+
 static void printf_putfloat(float n, int len, int precision){
     int f = 1;
 
@@ -118,6 +139,7 @@ void printf(const char* str, ...){
 
     uint32_t u;
 	int32_t i;
+    int64_t l;
     float f;
 	char *string;
     void *ptr;
@@ -135,6 +157,10 @@ void printf(const char* str, ...){
                 case 'd':
                     i = va_arg(args, int);
                     printf_putint(i);
+                    break;
+                case 'l':
+                    l = va_arg(args, long long);
+                    printf_putlong(l);
                     break;
                 case 'u':
                     u = va_arg(args, unsigned int);
