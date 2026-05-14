@@ -1,13 +1,44 @@
 #include "sdt.h"
+#include "printf.h"
 #include "string.h"
 #include <stdint.h>
+
+int apic_ids[128] = {0};
+unsigned char apic_ids_count = 0;
+
+struct MADT {
+    struct SDTHeader header;
+    uint32_t local_apic_address;
+    uint32_t flags;
+} __attribute__((packed));
+
+struct MADTEntryHeader {
+    uint8_t type;
+    uint8_t length;
+} __attribute__((packed));
+
+struct MADTLocalAPIC {
+    uint8_t type;
+    uint8_t length;
+    uint8_t processor_id;
+    uint8_t apic_id;
+    uint32_t flags;
+} __attribute__((packed));
+
+struct MADTLocalX2APIC {
+    uint8_t type;
+    uint8_t length;
+    uint16_t reserved;
+    uint32_t x2apic_id;
+    uint32_t flags;
+    uint32_t processor_uid;
+} __attribute__((packed));
+
+
 
 struct SDTHeader* RSDT = 0;
 struct SDTHeader* XSDT = 0;
 struct SDTHeader* MADT = 0;
-struct SDTHeader* FADT = 0;
-struct SDTHeader* SRAT = 0;
-struct SDTHeader* SSDT = 0;
 
 uint64_t find_rsdp() {
     for(int i=0;i<0x100000;i+=16) {
@@ -103,4 +134,55 @@ int xsdt_checksum(struct XSDP_t* ptr) {
         sum += ((uint8_t*)ptr)[i];
     }
     return sum % 0x100 == 0;
+}
+
+void enumerate_madt_cores() {
+    if (MADT == 0) {
+        return;
+    }
+
+    struct MADT* madt = (struct MADT*)MADT;
+    if (madt->header.Length < sizeof(struct MADT)) {
+        return;
+    }
+
+
+    uint8_t* entry = ((uint8_t*)madt) + sizeof(struct MADT);
+    uint8_t* end = ((uint8_t*)madt) + madt->header.Length;
+    int cpu_count = 0;
+
+    while (entry + sizeof(struct MADTEntryHeader) <= end) {
+        struct MADTEntryHeader* hdr = (struct MADTEntryHeader*)entry;
+
+        if (hdr->length < sizeof(struct MADTEntryHeader) || entry + hdr->length > end) {
+            break;
+        }
+
+        if (hdr->type == 0 && hdr->length >= sizeof(struct MADTLocalAPIC)) {
+            struct MADTLocalAPIC* lapic = (struct MADTLocalAPIC*)entry;
+            int enabled = (lapic->flags & 0x1) != 0;
+            int online_capable = (lapic->flags & 0x2) != 0;
+            printf("CPU[%d] ID:%d apic-id:%d\n",
+                cpu_count,
+                lapic->processor_id,
+                lapic->apic_id);
+            cpu_count++;
+            apic_ids[apic_ids_count++] = lapic->apic_id;
+        } else if (hdr->type == 9 && hdr->length >= sizeof(struct MADTLocalX2APIC)) {
+            struct MADTLocalX2APIC* x2apic = (struct MADTLocalX2APIC*)entry;
+            int enabled = (x2apic->flags & 0x1) != 0;
+            int online_capable = (x2apic->flags & 0x2) != 0;
+            printf("CPU[%d] ID:%d apic-id:%d\n",
+                cpu_count,
+                x2apic->processor_uid,
+                x2apic->x2apic_id
+            );
+            cpu_count++;
+            apic_ids[apic_ids_count++] = x2apic->x2apic_id;
+        }
+
+        entry += hdr->length;
+    }
+
+    printf("MADT CPU entries found: %d\n", cpu_count);
 }

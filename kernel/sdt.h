@@ -8,6 +8,9 @@ extern struct SDTHeader* FADT;
 extern struct SDTHeader* SRAT;
 extern struct SDTHeader* SSDT;
 
+extern int apic_ids[128];
+extern unsigned char apic_ids_count;
+
 struct RSDP_t {
  char Signature[8];
  uint8_t Checksum;
@@ -48,3 +51,4 @@ struct SDTHeader *sdt_find(struct SDTHeader* ptr, char* signature);
 
 struct SDTHeader *xsdt_find(struct SDTHeader* xsdt, char* signature);
 int xsdt_checksum(struct XSDP_t* ptr);
+void enumerate_madt_cores();

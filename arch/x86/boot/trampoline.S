@@ -11,7 +11,7 @@
 _start:
     cli
     cld
-
+    
     mov	%cs, %ax		# Set up the extra segment
     mov	%ax, %es		# with the data segment
     mov	%ax, %ds        # Set up the data segment
@@ -50,16 +50,51 @@ _start:
 
 .code32
 pm_start:
-    
-    # Update TSS for long mode
-    mov gdt64 + (3*8), %ax  # TSS selector
-    add $0x680000, %ax # point to next tss selector in tss space
-    
+
+    # Build a per-AP TSS at TSS_REGION + cpu_slot * sizeof(struct tss).
+    # boot_info->cpu_id is used as a dense slot index here.
+    mov $AP_BOOT_INFO_ADDR, %edx
+    mov 49(%edx), %ecx
+
+    mov $TSS_REGION, %esi
+    imul $0x68, %ecx, %ecx
+    add %ecx, %esi
+
+    mov %esi, %edi
+    xor %eax, %eax
+    mov $0x68 / 4, %ecx
+    rep stosl
+
+    mov 40(%edx), %eax
+    mov %eax, 4(%esi)
+    movl $0, 8(%esi)
+    movw $0x68, 102(%esi)
+
+    mov %esi, %ebx
+    movw $0x0068, gdt64 + (3*8)
+    movw %bx, gdt64 + (3*8) + 2
+    shrl $16, %ebx
+    movb %bl, gdt64 + (3*8) + 4
+    movb $0x89, gdt64 + (3*8) + 5
+    movb $0x00, gdt64 + (3*8) + 6
+    movb $0x00, gdt64 + (3*8) + 7
+    movl $0x0, gdt64 + (3*8) + 8
+    movl $0x0, gdt64 + (3*8) + 12
+
     call enable_paging
     lgdt gdt64_init
-
+    
     mov $0x18, %ax
     ltr %ax
+    
+    mov $AP_BOOT_INFO_ADDR, %eax
+    mov 40(%eax), %eax
+    
+    mov %eax, %esp
+    mov %eax, %ebp
+    
+    mov $AP_BOOT_INFO_ADDR, %eax
+    mov $1, 48(%eax)
 
     mov $AP_BOOT_INFO_ADDR, %eax
     mov 32(%eax), %eax

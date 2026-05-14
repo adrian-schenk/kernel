@@ -14,6 +14,7 @@ struct ap_boot_info {
     struct pt_ptr pt_ptr;     // Physical addresses of page tables 
     uint64_t kernel_entry;    // 64-bit entry point for AP
     uint64_t stack_ptr;       // Initial stack for AP
+    char     ap_startup_done;
     uint32_t cpu_id;          // AP ID (optional)
     uint32_t flags;           // e.g., started flag
     uint64_t vbe_info; // VBE info structure
