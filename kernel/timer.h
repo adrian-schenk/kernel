@@ -16,7 +16,12 @@
 
 #define TIMER_INTERRUPT 32
 
+extern unsigned long long apic_time; 
+
 void timer_setup();
+
+unsigned long long get_time();
+int get_ms_counter();
 
 void rtc_interrupt(uint64_t interrupt_number, uint64_t error_code);
 void apic_timer_setup_interrupt(uint64_t interrupt_number, uint64_t error_code);
