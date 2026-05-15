@@ -3,8 +3,8 @@
 
 extern uint64_t isr_stub_table[];
 
-#define idt_set_gate(num, offset, selector, ist, type_attr) \
-    _idt_set_gate(num, (uint64_t)(isr_stub_table[num]), selector, ist, type_attr)
+#define idt_set_gate(idt, num, offset, selector, ist, type_attr) \
+    _idt_set_gate(idt, num, (uint64_t)(isr_stub_table[num]), selector, ist, type_attr)
 
 struct idt_gate {
     uint16_t offset_low;
@@ -25,9 +25,6 @@ struct idt_init {
     uint64_t base;
 } __attribute__((packed));
 
-extern struct idt_init idt_init;
-extern struct idt idt;
-
-void idt_setup();
-void idt_load();
-void _idt_set_gate(uint8_t num, uint64_t offset, uint16_t selector, uint8_t ist, uint8_t type_attr);
+void idt_setup(struct idt* idt);
+void idt_load(struct idt_init idt_init);
+void _idt_set_gate(struct idt* idt, uint8_t num, uint64_t offset, uint16_t selector, uint8_t ist, uint8_t type_attr);

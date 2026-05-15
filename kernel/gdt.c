@@ -1,11 +1,9 @@
 #include "gdt.h"
 #include "tss.h"
+#include "kmalloc.h"
 #include "memlayout.h"
 
-struct gdt_entry gdt[1 + SEGMENT_DESCRIPTORS + (TSS_DESCRIPTORS * 2)];
-struct gdt_ptr gdt_init;
-
-void set_gdt_entry(int num, uint32_t base, uint32_t limit, uint8_t access, uint8_t flags) {
+void set_gdt_entry(struct gdt_entry* gdt, int num, uint32_t base, uint32_t limit, uint8_t access, uint8_t flags) {
     gdt[num].base_low    = (base & 0xFFFF);     // unused in long mode
     gdt[num].base_middle = (base >> 16) & 0xFF; // unused in long mode
     gdt[num].base_high   = (base >> 24) & 0xFF; // unused in long mode
@@ -16,7 +14,7 @@ void set_gdt_entry(int num, uint32_t base, uint32_t limit, uint8_t access, uint8
     gdt[num].access      = access;
 }
 
-void set_tss_entry(int num, uint64_t base, uint32_t limit, uint8_t access, uint8_t flags) {
+void set_tss_entry(struct gdt_entry* gdt, int num, uint64_t base, uint32_t limit, uint8_t access, uint8_t flags) {
     struct gdt_entry_tss* tss_entry = (struct gdt_entry_tss*) &gdt[num];
 
     tss_entry->limit       = limit & 0xFFFF;
@@ -30,30 +28,29 @@ void set_tss_entry(int num, uint64_t base, uint32_t limit, uint8_t access, uint8
     tss_entry->reserved    = 0;
 }
 
-void gdt_setup() {
-    //gdt_init.limit = sizeof(gdt);
-    //gdt_init.base = (uint64_t)&gdt;
-//
-    //set_gdt_entry(0, 0, 0, 0, 0); // null descriptor
-    //set_gdt_entry(1, 0, 0xFFFFFFFF, GDT_A_PRESENT | //GDT_A_PRIVL_0 | GDT_A_CODE_DATA | GDT_A_EXECUTABLE | //GDT_A_RW, GDT_F_GRANULARITY | GDT_F_64BIT); // 64-bit //kernel code segment
-    //set_gdt_entry(2, 0, 0xFFFFFFFF, GDT_A_PRESENT | //GDT_A_PRIVL_0 | GDT_A_CODE_DATA | GDT_A_RW, //GDT_F_GRANULARITY | GDT_F_64BIT); // 64-bit kernel data //segment
-//
-    //tss.rsp0 = INTERRUPT_STACK_TOP;
-    //tss.io_map_base = sizeof(struct tss);
-//
-    //set_tss_entry(3, &tss, sizeof(struct tss), 0x89, 0);
+void gdt_setup(struct gdt_entry* gdt, uint16_t gdt_entries) {
+    struct gdt_ptr gdt_init;
+    gdt_init.limit = (gdt_entries * sizeof(struct gdt_entry)) - 1;
+    gdt_init.base = (uint64_t)gdt;
 
-    gdt_init.limit = 0x28;
-    gdt_init.base = 0x1110;
+    set_gdt_entry(gdt, 0, 0, 0, 0, 0); // null descriptor
+    set_gdt_entry(gdt, 1, 0, 0xFFFFFFFF, GDT_A_PRESENT | GDT_A_PRIVL_0 | GDT_A_CODE_DATA | GDT_A_EXECUTABLE | GDT_A_RW, GDT_F_GRANULARITY | GDT_F_64BIT); // 64-bit //kernel code segment
+    set_gdt_entry(gdt, 2, 0, 0xFFFFFFFF, GDT_A_PRESENT | GDT_A_PRIVL_0 | GDT_A_CODE_DATA | GDT_A_RW, GDT_F_GRANULARITY | GDT_F_64BIT); // 64-bit kernel data //segment
 
-    gdt_load();
+    struct tss *gdt_tss = kmalloc(sizeof(struct tss));
+    gdt_tss->rsp0 = INTERRUPT_STACK_TOP;
+    gdt_tss->io_map_base = sizeof(struct tss);
+
+    set_tss_entry(gdt, 3, (uint64_t)gdt_tss, sizeof(struct tss), 0x89, 0);
+
+    gdt_load(gdt_init);
 
     return;
 }
 
-void gdt_load() {
+void gdt_load(struct gdt_ptr gdt_init) {
     asm volatile ("lgdt %0" : : "m" (gdt_init));
-    asm volatile ("mov $18, %ax\n" // Load TSS or //////////ex 3, so selector value is 3*8=24 or 0x18)
+    asm volatile ("mov $0x18, %ax\n" // Load TSS, so selector value is 3*8=24 or 0x18)
                 "ltr %ax\n");
 
     asm volatile (

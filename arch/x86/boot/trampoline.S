@@ -51,6 +51,8 @@ _start:
 .code32
 pm_start:
 
+    call enable_paging
+        
     # Build a per-AP TSS at TSS_REGION + cpu_slot * sizeof(struct tss).
     # boot_info->cpu_id is used as a dense slot index here.
     mov $AP_BOOT_INFO_ADDR, %edx
@@ -81,9 +83,8 @@ pm_start:
     movl $0x0, gdt64 + (3*8) + 8
     movl $0x0, gdt64 + (3*8) + 12
 
-    call enable_paging
     lgdt gdt64_init
-    
+
     mov $0x18, %ax
     ltr %ax
     
@@ -91,10 +92,6 @@ pm_start:
     mov 40(%eax), %eax
     
     mov %eax, %esp
-    mov %eax, %ebp
-    
-    mov $AP_BOOT_INFO_ADDR, %eax
-    mov $1, 48(%eax)
 
     mov $AP_BOOT_INFO_ADDR, %eax
     mov 32(%eax), %eax

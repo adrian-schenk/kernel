@@ -78,7 +78,7 @@ void timer_setup() {
     
     set_interrupt_handler(32, apic_interrupt);
     apic_write(TIMER_INITIAL_COUNT_REGISTER, ms_counter); // set counter
-    apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_PERIODIC); // enable apic timer
+    //apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_PERIODIC); // enable apic timer
 }
 
 unsigned long long get_time() {

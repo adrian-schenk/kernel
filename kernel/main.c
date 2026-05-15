@@ -55,7 +55,6 @@ void kernel_main() {
     printf("Console initialized.\n");
     printf("VESA buffer: %p\n", ((VbeModeInfoBlock*)boot_info->vesa_info)->PhysBasePtr);
     
-
     boot_info->kernel_entry = (uint32_t) &ap_kernel_main;
     boot_info->stack_ptr = &tmp_stack[4095];
 
@@ -69,14 +68,18 @@ void kernel_main() {
 
     enumerate_madt_cores();
     
+    struct gdt_entry* gdt = kmalloc(sizeof(struct gdt_entry) * 5);
+    gdt_setup(gdt, 5);
+
     interrupts_setup();
-    idt_setup();
+    struct idt* idt = kmalloc(sizeof(struct idt));
+    idt_setup(idt);
     apic_setup();
     sti();
 
     timer_setup();
-
-    smp_setup();
+    
+    //smp_setup();
 
     for(;;){
         
@@ -84,6 +87,9 @@ void kernel_main() {
 }
 
 void ap_kernel_main() {
+
+    boot_info->ap_startup_done = 1;
+
     for(;;){
         
     }

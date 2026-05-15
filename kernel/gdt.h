@@ -46,15 +46,12 @@ struct gdt_ptr {
 } __attribute__((packed));
 
 
-#define SEGMENT_DESCRIPTORS 3 // descriptor count without null
+#define SEGMENT_DESCRIPTORS 2 // descriptor count without null
 #define TSS_DESCRIPTORS 1 // tss descriptor count
 
-extern struct gdt_entry gdt[1 + SEGMENT_DESCRIPTORS + (TSS_DESCRIPTORS * 2)] __attribute__((aligned(8)));
-extern struct gdt_ptr gdt_init;
-
-void set_gdt_entry(int num, uint32_t base, uint32_t limit, uint8_t access, uint8_t granularity);
-void set_tss_entry(int num, uint64_t base, uint32_t limit, uint8_t access, uint8_t flags);
-void gdt_setup();
-void gdt_load();
+void set_gdt_entry(struct gdt_entry*, int num, uint32_t base, uint32_t limit, uint8_t access, uint8_t granularity);
+void set_tss_entry(struct gdt_entry*, int num, uint64_t base, uint32_t limit, uint8_t access, uint8_t flags);
+void gdt_setup(struct gdt_entry*, uint16_t gdt_entries);
+void gdt_load(struct gdt_ptr);
 
 #endif
