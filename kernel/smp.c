@@ -6,12 +6,13 @@
 void smp_setup() {
 
     for (int i = 1; i < apic_ids_count; i++) {
+        
         printf("Starting CPU %d of %d\n", i, apic_ids_count - 1);
         boot_info->ap_startup_done = 0;
         int target_apic_id = apic_ids[i];
 
         boot_info->cpu_id = i;
-        boot_info->stack_ptr = kmalloc(4096);
+        boot_info->stack_ptr = kmalloc(4096) + 4095;
         
         apic_write(0x280,0); // clear apic errors
         apic_write(0x310, (apic_read(0x310) & 0x00ffffff) | (target_apic_id << 24)); // Select AP

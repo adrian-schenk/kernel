@@ -6,6 +6,7 @@
 
 void unknown_interrupt(uint64_t interrupt_number, uint64_t error_code) {
     printf("received interrupt %d with error: %d\n", interrupt_number, error_code);
+    for(;;);
 }
 
 void exception_handler(uint64_t exception_number, uint64_t error_code) {}

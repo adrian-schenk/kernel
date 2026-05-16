@@ -79,7 +79,7 @@ void kernel_main() {
 
     timer_setup();
     
-    //smp_setup();
+    smp_setup();
 
     for(;;){
         
@@ -87,6 +87,30 @@ void kernel_main() {
 }
 
 void ap_kernel_main() {
+    cli();
+
+    // Enable x87/SSE in control registers before executing C code that may use float ops.
+    __asm__ volatile (
+        "mov %%cr0, %%rax\n"
+        "btr $2, %%rax\n"      // CR0.EM = 0 (do not emulate x87)
+        "btr $3, %%rax\n"      // CR0.TS = 0 (task-switched off)
+        "bts $1, %%rax\n"      // CR0.MP = 1 (monitor coprocessor)
+        "mov %%rax, %%cr0\n"
+        
+        "mov %%cr4, %%rax\n"
+        "bts $9, %%rax\n"      // CR4.OSFXSR = 1 (enable SSE instructions)
+        "bts $10, %%rax\n"     // CR4.OSXMMEXCPT = 1 (enable SSE exceptions)
+        "mov %%rax, %%cr4\n"
+        
+        "fninit\n"
+        : : : "rax", "memory"
+    );
+
+    struct idt* idt = kmalloc(sizeof(struct idt));
+    idt_setup(idt);
+
+    struct gdt_entry* gdt = kmalloc(sizeof(struct gdt_entry) * 5);
+    gdt_setup(gdt, 5);
 
     boot_info->ap_startup_done = 1;
 
