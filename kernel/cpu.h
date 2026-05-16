@@ -1,9 +1,36 @@
 #pragma once
 #include <cpuid.h>
+#include <stddef.h>
+#include "task.h"
+#include "scheduler.h"
+
+extern struct cpu_local *cpu_locals;
+
+struct cpu_local {
+    uint8_t cpu_id;
+    uint8_t apic_id;
+    task_t* current;
+    scheduler_t scheduler;
+    uint8_t* kernel_stack;
+    char local_interrupt_handlers;
+    void *interrupt_handlers
+};
 
 struct cpu_features {
     unsigned int ebx, ecx, edx;
 };
+
+#define this_cpu(field) \
+    (*(__typeof__(cpu_locals[0].field) __seg_gs *) \
+     offsetof(struct cpu_local, field))
+
+static inline uint8_t current_cpu_id(void) {
+    uint8_t id;
+    __asm__("movb %%gs:%1, %0"
+            : "=r"(id)
+            : "m"(*(uint8_t *)offsetof(struct cpu_local, cpu_id)));
+    return id;
+}
 
 // Vendor strings from CPUs.
 #define CPUID_VENDOR_AMD           "AuthenticAMD"
@@ -37,6 +64,8 @@ struct cpu_features {
 #define CPUID_VENDOR_PARALLELS_ALT " lrpepyh vr " // Sometimes Parallels incorrectly encodes "prl hyperv" as "lrpepyh vr" due to an endianness mismatch.
 #define CPUID_VENDOR_BHYVE         "bhyve bhyve "
 #define CPUID_VENDOR_QNX           " QNXQVMBSQG "
+
+#define MSR_GS_BASE 0xC0000101
 
 enum {
     CPUID_FEAT_EBX_BRAND_INDEX        = 0xFF << 0,
@@ -133,8 +162,12 @@ static inline uint64_t __read_msr(uint32_t msr) {
     return ((uint64_t)high << 32) | low;
 }
 
-static inline void __write_msr(uint32_t msr, uint64_t value) {
+static volatile inline void __write_msr(uint32_t msr, uint64_t value) {
     uint32_t low = value & 0xFFFFFFFF;
     uint32_t high = value >> 32;
-    __asm__ volatile("wrmsr" : : "c"(msr), "a"(low), "d"(high));
+    __asm__ volatile(
+        "wrmsr"
+        : : "c"(msr), "a"(low), "d"(high)
+        : "memory"          // tells compiler: all memory is clobbered/sequenced
+    );
 }

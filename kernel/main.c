@@ -20,13 +20,16 @@
 #include "io.h"
 #include "timer.h"
 #include "sleep.h"
+#include "task.h"
+#include "scheduler.h"
 
 uint16_t video_xbytes = 1024 * 3, video_xres = 1024, video_yres = 768;
 uint8_t* video_buffer = (uint8_t*) 0xA0000;
 
-struct ap_boot_info* boot_info = (struct ap_boot_info*) AP_BOOT_INFO_ADDR;
+struct cpu_local *cpu_locals;
+int cpu_count = 0;
 
-unsigned char tmp_stack[4096] = {0};
+struct ap_boot_info* boot_info = (struct ap_boot_info*) AP_BOOT_INFO_ADDR;
 
 void ap_kernel_main();
 
@@ -56,7 +59,6 @@ void kernel_main() {
     printf("VESA buffer: %p\n", ((VbeModeInfoBlock*)boot_info->vesa_info)->PhysBasePtr);
     
     boot_info->kernel_entry = (uint32_t) &ap_kernel_main;
-    boot_info->stack_ptr = &tmp_stack[4095];
 
     struct cpu_features cpu_features = __get_cpu_features();
     
@@ -68,17 +70,30 @@ void kernel_main() {
 
     enumerate_madt_cores();
     
+    if (apic_ids_count > 0)
+        cpu_locals = kmalloc(apic_ids_count * sizeof(struct cpu_local));
+
+    struct cpu_local *cpu_local = &cpu_locals[cpu_count++];
+    
+    cpu_local->cpu_id = 0;
+    
     struct gdt_entry* gdt = kmalloc(sizeof(struct gdt_entry) * 5);
     gdt_setup(gdt, 5);
-
+    
     interrupts_setup();
     struct idt* idt = kmalloc(sizeof(struct idt));
     idt_setup(idt);
     apic_setup();
-    sti();
-
-    timer_setup();
+    ioapic_setup();
     
+    cpu_local->apic_id = apic_read(LAPIC_ID_REGISTER);
+
+    __write_msr(MSR_GS_BASE, (uint64_t)cpu_local); // write locals before interrupts are enabled
+
+    sti();
+    
+    timer_setup();
+
     smp_setup();
 
     for(;;){
@@ -87,7 +102,13 @@ void kernel_main() {
 }
 
 void ap_kernel_main() {
+
     cli();
+
+    struct cpu_local *cpu_local = &cpu_locals[cpu_count++];
+    
+    cpu_local->cpu_id = boot_info->cpu_id;
+    cpu_local->kernel_stack = boot_info->stack_ptr;
 
     // Enable x87/SSE in control registers before executing C code that may use float ops.
     __asm__ volatile (
@@ -109,10 +130,14 @@ void ap_kernel_main() {
     struct idt* idt = kmalloc(sizeof(struct idt));
     idt_setup(idt);
 
-    struct gdt_entry* gdt = kmalloc(sizeof(struct gdt_entry) * 5);
+    struct gdt_entry* gdt = kmalloc(GDT_ENTRY_SIZE * (GDT_ENTRY * 3 + GDT_TSS_ENTRY * 1));
     gdt_setup(gdt, 5);
 
-    boot_info->ap_startup_done = 1;
+    __write_msr(MSR_GS_BASE, (uint64_t)cpu_local);
+
+    boot_info->ap_startup_done = 1; // boot up other cores
+
+    sti();
 
     for(;;){
         

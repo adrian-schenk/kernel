@@ -20,5 +20,3 @@ struct ap_boot_info {
     uint64_t vbe_info; // VBE info structure
     uint64_t vesa_info; // VBE mode-info structure
 } __attribute__((packed));
-
-extern unsigned char tmp_stack[4096];

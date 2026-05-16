@@ -20,6 +20,10 @@
 #define GDT_F_64BIT         0x20
 #define GDT_F_32BIT         0x40
 
+#define GDT_ENTRY_SIZE sizeof(struct gdt_entry)
+#define GDT_ENTRY 1
+#define GDT_TSS_ENTRY 2
+
 struct gdt_entry {
     uint16_t limit;    // Lower 16 bits of limit
     uint16_t base_low;     // Lower 16 bits of base

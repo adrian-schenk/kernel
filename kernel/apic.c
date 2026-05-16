@@ -24,7 +24,6 @@ void apic_setup() {
 
         for (int i = 0; i < 32; i++) {
             pt_map_page(&kernel_pml4, APIC_VIRT + i * PAGE_SIZE, apic_base + i * PAGE_SIZE, PAGE_PRESENT | PAGE_WRITABLE | PAGE_PWT | PAGE_PCD);
-            pt_map_page(&kernel_pml4, IOAPIC_VIRT + i * PAGE_SIZE, 0xFEC00000 + i * PAGE_SIZE, PAGE_PRESENT | PAGE_WRITABLE | PAGE_PWT | PAGE_PCD);
         }
         
         uint32_t svr = apic_read(SPURIOUS_INTERRUPT_VECTOR_REGISTER);
@@ -34,23 +33,30 @@ void apic_setup() {
         
         apic_write(LOCAL_DESTINATION_REGISTER, 0x10000000); // set apic id
         apic_write(DESTINATION_FORMAT_REGISTER, 0xF0000000); // flat model
-        
-        uint32_t low =
-            0x21        // vector
-            | (0 << 8)    // fixed delivery
-            | (0 << 11)   // physical destination
-            | (0 << 13)   // active high
-            | (0 << 15)   // edge trigger
-            | (0 << 16);  // unmasked
-        
-        ioapic_write(0x12, low);
-        uint32_t high = (0 << 24);
-        ioapic_write(0x13, high);
+    
     } else {
         // HLT
         for(;;);
     }
 
+}
+
+void ioapic_setup() {
+    for (int i = 0; i < 32; i++) {
+        pt_map_page(&kernel_pml4, IOAPIC_VIRT + i * PAGE_SIZE, 0xFEC00000 + i * PAGE_SIZE, PAGE_PRESENT | PAGE_WRITABLE | PAGE_PWT | PAGE_PCD);
+    }
+
+    uint32_t low =
+    0x21        // vector
+    | (0 << 8)    // fixed delivery
+    | (0 << 11)   // physical destination
+    | (0 << 13)   // active high
+    | (0 << 15)   // edge trigger
+    | (0 << 16);  // unmasked
+
+    ioapic_write(0x12, low);
+    uint32_t high = (0 << 24);
+    ioapic_write(0x13, high);
 }
 
 void apic_write(uint16_t reg, uint32_t value) {

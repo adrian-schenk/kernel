@@ -3,9 +3,10 @@
 #include "apic.h"
 #include "io.h"
 #include "timer.h"
+#include "cpu.h"
 
 void unknown_interrupt(uint64_t interrupt_number, uint64_t error_code) {
-    printf("received interrupt %d with error: %d\n", interrupt_number, error_code);
+    printf("received interrupt %d with error: %d on cpu: %d\n", interrupt_number, error_code, this_cpu(cpu_id));
     for(;;);
 }
 
