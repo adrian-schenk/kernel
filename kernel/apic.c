@@ -12,6 +12,13 @@
 uint64_t apic_base;
 uint64_t ioapic_base;
 
+void apic_enable() {
+    uint32_t svr = apic_read(SPURIOUS_INTERRUPT_VECTOR_REGISTER);
+    svr |= 0x100; // software-enable this core's local APIC
+    svr |= 0xFF;  // spurious vector
+    apic_write(SPURIOUS_INTERRUPT_VECTOR_REGISTER, svr);
+}
+
 void apic_setup() {
 
     // mask all PIC interrupts
@@ -26,10 +33,7 @@ void apic_setup() {
             pt_map_page(&kernel_pml4, APIC_VIRT + i * PAGE_SIZE, apic_base + i * PAGE_SIZE, PAGE_PRESENT | PAGE_WRITABLE | PAGE_PWT | PAGE_PCD);
         }
         
-        uint32_t svr = apic_read(SPURIOUS_INTERRUPT_VECTOR_REGISTER);
-        svr |= 0x100; // Set the APIC Software Enable/Disable bit (bit 8) to enable the APIC.
-        svr |= 0xFF; // Set the APIC Version to 0xFF to indicate that the APIC supports xAPIC mode.
-        apic_write(SPURIOUS_INTERRUPT_VECTOR_REGISTER, svr);
+        apic_enable();
         
         apic_write(LOCAL_DESTINATION_REGISTER, 0x10000000); // set apic id
         apic_write(DESTINATION_FORMAT_REGISTER, 0xF0000000); // flat model

@@ -4,10 +4,11 @@
 typedef void(*interrupt_handler_t)(uint64_t interrupt_number, uint64_t error_code);
 
 extern interrupt_handler_t interrupt_handlers[256];
+extern interrupt_handler_t interrupt_handlers_ap[256];
 
 void interrupts_setup();
 
-void set_interrupt_handler(uint64_t interrupt_number, interrupt_handler_t);
+void set_interrupt_handler(interrupt_handler_t *handlers, uint64_t interrupt_number, interrupt_handler_t);
 
 void interrupt_handler(uint64_t interrupt_number, uint64_t error_code);
 

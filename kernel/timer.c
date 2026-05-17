@@ -3,36 +3,36 @@
 #include "io.h"
 #include "interrupt.h"
 #include "printf.h"
+#include "cpu.h"
 
 volatile int rtc_ticks = 0;
-volatile int apic_ticks = 0;
-
-unsigned long long apic_time;
 
 const int rtc_calibration_ticks = 256;
 
 long long apic_speed = 0;
-int ms_counter;
 
+// will only run on bs core
 void rtc_interrupt(uint64_t interrupt_number, uint64_t error_code) {
     rtc_ticks++;
     outb(0x70, 0x0C);	// select register C
     inb(0x71);		// just throw away contents
 }
 
+// will run on all cores
 void apic_timer_setup_interrupt(uint64_t interrupt_number, uint64_t error_code) {
-    apic_ticks++;
+    this_cpu(apic_ticks)++;
 }
 
+// will run on all cores
 void apic_interrupt(uint64_t interrupt_number, uint64_t error_code) {
-    apic_time += ms_counter;
+    this_cpu(apic_time) += this_cpu(ms_counter);
 }
 
 void timer_setup() {
 
     // enable RTC interrupts for apic timer calibration
     cli();
-    set_interrupt_handler(40, rtc_interrupt);
+    set_interrupt_handler(this_cpu(interrupt_handlers), 40, rtc_interrupt);
     uint32_t low =
         0x28          // vector
         | (0 << 8)    // fixed delivery
@@ -52,8 +52,8 @@ void timer_setup() {
     sti();
 
     // apic setup
-    set_interrupt_handler(32, apic_timer_setup_interrupt);
-    apic_write(TIMER_DIVIDE_CONFIGURATION_REGISTER, TIMER_DIVIDE_1); // divide by 2
+    set_interrupt_handler(this_cpu(interrupt_handlers), 32, apic_timer_setup_interrupt);
+    apic_write(TIMER_DIVIDE_CONFIGURATION_REGISTER, TIMER_DIVIDE_1); // divide by 1
     
     while (rtc_ticks < 2);
     
@@ -68,23 +68,23 @@ void timer_setup() {
     float seconds = rtc_ticks / 1024.0f;
 
     if (seconds > 0) {
-        apic_speed = (uint64_t)(((10240 << 2) * apic_ticks / 2) / seconds);
+        apic_speed = (uint64_t)(((10240 << 2) * this_cpu(apic_ticks) / 2) / seconds);
         printf("Detected APIC Timer speed: %d\n", apic_speed);
     } else {
         printf("APIC Timer could not be initialized\n");
     }
 
-    ms_counter = apic_speed / 1000 * 2;
+    this_cpu(ms_counter) = apic_speed / 1000 * 2;
     
-    set_interrupt_handler(32, apic_interrupt);
-    apic_write(TIMER_INITIAL_COUNT_REGISTER, ms_counter); // set counter
-    //apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_PERIODIC); // enable apic timer
+    set_interrupt_handler(this_cpu(interrupt_handlers), 32, apic_interrupt);
+    apic_write(TIMER_INITIAL_COUNT_REGISTER, this_cpu(ms_counter)); // set counter
+    apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_PERIODIC); // enable apic timer
 }
 
 unsigned long long get_time() {
-    return apic_time;
+    return this_cpu(apic_time);
 }
 
 int get_ms_counter() {
-    return ms_counter;
+    return this_cpu(ms_counter);
 }

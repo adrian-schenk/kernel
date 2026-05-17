@@ -29,6 +29,9 @@ uint8_t* video_buffer = (uint8_t*) 0xA0000;
 struct cpu_local *cpu_locals;
 int cpu_count = 0;
 
+const int timer_calib_ms = 200;
+volatile int timer_phase = 0;
+
 struct ap_boot_info* boot_info = (struct ap_boot_info*) AP_BOOT_INFO_ADDR;
 
 void ap_kernel_main();
@@ -81,12 +84,13 @@ void kernel_main() {
     gdt_setup(gdt, 5);
     
     interrupts_setup();
+    cpu_local->interrupt_handlers = &interrupt_handlers;
     struct idt* idt = kmalloc(sizeof(struct idt));
     idt_setup(idt);
     apic_setup();
     ioapic_setup();
     
-    cpu_local->apic_id = apic_read(LAPIC_ID_REGISTER);
+    cpu_local->apic_id = apic_read(LAPIC_ID_REGISTER) >> 24;
 
     __write_msr(MSR_GS_BASE, (uint64_t)cpu_local); // write locals before interrupts are enabled
 
@@ -95,6 +99,10 @@ void kernel_main() {
     timer_setup();
 
     smp_setup();
+
+    timer_phase = 1;
+    sleep(timer_calib_ms);
+    timer_phase = 2;
 
     for(;;){
         
@@ -127,17 +135,48 @@ void ap_kernel_main() {
         : : : "rax", "memory"
     );
 
-    struct idt* idt = kmalloc(sizeof(struct idt));
-    idt_setup(idt);
-
     struct gdt_entry* gdt = kmalloc(GDT_ENTRY_SIZE * (GDT_ENTRY * 3 + GDT_TSS_ENTRY * 1));
     gdt_setup(gdt, 5);
 
+    struct idt* idt = kmalloc(sizeof(struct idt));
+    idt_setup(idt);
+
+    // switch interrupt_handlers to ap setup handlers temporarily
+    cpu_local->interrupt_handlers = &interrupt_handlers_ap;    
+    cpu_local->apic_id = apic_read(LAPIC_ID_REGISTER) >> 24;
+
     __write_msr(MSR_GS_BASE, (uint64_t)cpu_local);
+
+    apic_enable(); // software-enable this AP's local APIC before any APIC writes
+    
+    sti();
+    
+    apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_DISABLED); // disable apic timer (if enabled)
+    apic_write(TIMER_DIVIDE_CONFIGURATION_REGISTER, TIMER_DIVIDE_1); // divide by 1
+    apic_write(TIMER_INITIAL_COUNT_REGISTER, 10240 << 2); // set counter
+
+    set_interrupt_handler(this_cpu(interrupt_handlers), 32, apic_timer_setup_interrupt);
 
     boot_info->ap_startup_done = 1; // boot up other cores
 
-    sti();
+    while (timer_phase < 1);
+    
+    apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_PERIODIC); // enable periodic timer
+    apic_write(TIMER_INITIAL_COUNT_REGISTER, 10240 << 2); // set counter
+    
+    while (timer_phase < 2);
+
+    apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_DISABLED); // disable apic timer
+    
+    // set regular interrupt handlers
+    cpu_local->interrupt_handlers = &interrupt_handlers;
+
+    long long apic_speed = ((10240 << 2) * this_cpu(apic_ticks));
+    cpu_local->ms_counter = apic_speed / timer_calib_ms;
+    cpu_local->apic_time = 0;
+
+    apic_write(TIMER_INITIAL_COUNT_REGISTER, cpu_local->ms_counter); // set counter (for 1 ms)
+    apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_PERIODIC); // enable periodic timer (to enable sleep)
 
     for(;;){
         

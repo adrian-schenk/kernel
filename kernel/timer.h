@@ -16,8 +16,6 @@
 
 #define TIMER_INTERRUPT 32
 
-extern unsigned long long apic_time; 
-
 void timer_setup();
 
 unsigned long long get_time();

@@ -24,6 +24,7 @@
 #define TIMER_CURRENT_COUNT_REGISTER 0x390
 #define TIMER_DIVIDE_CONFIGURATION_REGISTER 0x3E0
 
+void apic_enable();
 void apic_setup();
 void ioapic_setup();
 void apic_write(uint16_t reg, uint32_t value);

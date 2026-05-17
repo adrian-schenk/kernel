@@ -1,4 +1,7 @@
 #include "printf.h"
+#include "spinlock.h"
+
+uint8_t spinlock;
 
 const char hex_codes[] = {
     '0',
@@ -135,6 +138,8 @@ static void printf_putfloat(float n, int len, int precision){
 
 void printf(const char* str, ...){
 
+    lock(&spinlock);
+
     va_list args;
 
     uint32_t u;
@@ -211,5 +216,7 @@ void printf(const char* str, ...){
 
         str++;
     }
+
+    unlock(&spinlock);
 
 }

@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include "task.h"
 #include "scheduler.h"
+#include "interrupt.h"
 
 extern struct cpu_local *cpu_locals;
 
@@ -13,7 +14,10 @@ struct cpu_local {
     scheduler_t scheduler;
     uint8_t* kernel_stack;
     char local_interrupt_handlers;
-    void *interrupt_handlers
+    interrupt_handler_t *interrupt_handlers;
+    volatile unsigned long long apic_ticks;
+    volatile unsigned long long apic_time;
+    volatile int ms_counter;
 };
 
 struct cpu_features {

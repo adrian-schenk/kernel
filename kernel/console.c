@@ -1,6 +1,9 @@
 #include "console.h"
+#include "spinlock.h"
 
 console_t* k_console = {0};
+
+uint8_t write_lock;
 
 console_t* console_init(){
     console_t* console = (console_t*) kmalloc(sizeof(struct console));
@@ -18,11 +21,16 @@ void console_setref(console_t* c){
 }
 
 void console_write(char* data, int len){
-
+    lock(&write_lock);
     for(int i = 0; i < len; i++){
 
         if(k_console->x > k_console->width){
             k_console->y++;
+            k_console->x = 0;
+        }
+
+        if (k_console->y >= k_console->height) {
+            k_console->y = 0;
             k_console->x = 0;
         }
 
@@ -42,7 +50,7 @@ void console_write(char* data, int len){
                 k_console->x++;
         }
     }
-
+    unlock(&write_lock);
 }
 
 void console_putchar(char c){
