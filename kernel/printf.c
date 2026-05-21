@@ -1,5 +1,6 @@
 #include "printf.h"
 #include "spinlock.h"
+#include "interrupt.h"
 
 uint8_t spinlock;
 
@@ -138,6 +139,7 @@ static void printf_putfloat(float n, int len, int precision){
 
 void printf(const char* str, ...){
 
+    cli();
     lock(&spinlock);
 
     va_list args;
@@ -218,5 +220,5 @@ void printf(const char* str, ...){
     }
 
     unlock(&spinlock);
-
+    sti();
 }
