@@ -92,7 +92,6 @@ void kernel_main() {
     struct cpu_local *cpu_local = &cpu_locals[cpu_count++];
     
     cpu_local->cpu_id = 0;
-    cpu_local->next_task = (void*)0;
     
     struct gdt_entry* gdt = kmalloc(sizeof(struct gdt_entry) * 5);
     gdt_setup(gdt, 5);
@@ -134,7 +133,6 @@ void ap_kernel_main() {
     struct cpu_local *cpu_local = &cpu_locals[cpu_count++];
     
     cpu_local->cpu_id = boot_info->cpu_id;
-    cpu_local->next_task = (void*)0;
     cpu_local->kernel_stack = boot_info->stack_ptr;
 
     cpu_enable_sse();
