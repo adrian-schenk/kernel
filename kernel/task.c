@@ -9,7 +9,9 @@ task_t *task_create(uint64_t entry) {
   uint64_t *rsp_location;
   uint64_t *stack = ((uint8_t*) kmalloc(4096)) + 4096;
 
-  *--stack = 0xabcd; // return address (todo)
+  *--stack = task->id;
+  *--stack = task_return; // fake rbp
+  *--stack = task_return; // return address
   *--stack = 0x10; // ss
   rsp_location = --stack; // save rsp for later
   *--stack = 0x202; // rflags
@@ -24,9 +26,14 @@ task_t *task_create(uint64_t entry) {
   for (int i = 0; i < (152 / 8); i++)
     *--stack = 0x00; // mock function call stack from interrupt_handler to task_switch_to (152 bytes)
 
-  *rsp_location = (uint64_t) stack;
+  *rsp_location = (uint64_t*) rsp_location + 2;
   task->rsp = (uint64_t)stack;
   return task;
+}
+
+static void task_return(char a, char b, char c, char d, char e, char f, long long task_id) {
+  printf("task returned, exiting cpu %d and %l at %p\n", this_cpu(cpu_id), task_id, &task_id);
+  for(;;);
 }
 
 void task_switch_to(task_t *next) {

@@ -9,3 +9,4 @@ typedef struct task {
 task_t *task_create(uint64_t entry);
 void task_switch_to(task_t *next);
 extern void _task_switch_to(void* v, task_t *current, task_t *next);
+static void task_return(char a, char b, char c, char d, char e, char f, long long task_id);

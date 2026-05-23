@@ -44,9 +44,7 @@ void thread_idle() {
 
 void thread_test() {
     printf("Hello from cpu thread %d!\n", this_cpu(cpu_id));
-    for(;;) {
-        
-    }
+    
 }
 
 void kernel_main() {
