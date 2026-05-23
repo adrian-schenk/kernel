@@ -26,6 +26,11 @@ void apic_timer_setup_interrupt(uint64_t interrupt_number, uint64_t error_code) 
 // will run on all cores
 void apic_interrupt(uint64_t interrupt_number, uint64_t error_code) {
     this_cpu(apic_time) += this_cpu(ms_counter);
+    this_cpu(last_schedule) += this_cpu(ms_counter);
+    if (this_cpu(last_schedule) > this_cpu(ms_counter) * 2) {
+        this_cpu(last_schedule) = 0;
+        scheduler_tick(this_cpu(scheduler));
+    }
 }
 
 void timer_setup() {

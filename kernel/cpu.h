@@ -10,14 +10,14 @@ extern struct cpu_local *cpu_locals;
 struct cpu_local {
     uint8_t cpu_id;
     uint8_t apic_id;
-    task_t* current;
-    scheduler_t scheduler;
-    uint8_t* kernel_stack;
+    scheduler_t *scheduler;
+    uint8_t *kernel_stack;
     char local_interrupt_handlers;
     interrupt_handler_t *interrupt_handlers;
     volatile unsigned long long apic_ticks;
     volatile unsigned long long apic_time;
     volatile int ms_counter;
+    volatile unsigned long long last_schedule;
 };
 
 struct cpu_features {
@@ -173,5 +173,23 @@ static volatile inline void __write_msr(uint32_t msr, uint64_t value) {
         "wrmsr"
         : : "c"(msr), "a"(low), "d"(high)
         : "memory"          // tells compiler: all memory is clobbered/sequenced
+    );
+}
+
+static inline void cpu_enable_sse(void) {
+    __asm__ volatile (
+        "mov %%cr0, %%rax\n"
+        "btr $2, %%rax\n"      // CR0.EM = 0 (do not emulate x87)
+        "btr $3, %%rax\n"      // CR0.TS = 0 (task-switched off)
+        "bts $1, %%rax\n"      // CR0.MP = 1 (monitor coprocessor)
+        "mov %%rax, %%cr0\n"
+        
+        "mov %%cr4, %%rax\n"
+        "bts $9, %%rax\n"      // CR4.OSFXSR = 1 (enable SSE instructions)
+        "bts $10, %%rax\n"     // CR4.OSXMMEXCPT = 1 (enable SSE exceptions)
+        "mov %%rax, %%cr4\n"
+        
+        "fninit\n"
+        : : : "rax", "memory"
     );
 }
