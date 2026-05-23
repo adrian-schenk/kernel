@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include "cpu.h"
 
 #define TIMER_DIVIDE_1 0b1
 #define TIMER_DIVIDE_2 0x00
@@ -23,3 +24,5 @@ int get_ms_counter();
 
 void rtc_interrupt(uint64_t interrupt_number, uint64_t error_code);
 void apic_timer_setup_interrupt(uint64_t interrupt_number, uint64_t error_code);
+
+void timer_setup_ap(struct cpu_local *cpu_local);

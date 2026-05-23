@@ -4,6 +4,8 @@
 #include "interrupt.h"
 #include "printf.h"
 #include "cpu.h"
+#include "boot_info.h"
+#include "globals.h"
 
 volatile int rtc_ticks = 0;
 
@@ -84,6 +86,36 @@ void timer_setup() {
     set_interrupt_handler(this_cpu(interrupt_handlers), 32, apic_interrupt);
     apic_write(TIMER_INITIAL_COUNT_REGISTER, this_cpu(ms_counter)); // set counter
     apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_PERIODIC); // enable apic timer
+}
+
+void timer_setup_ap(struct cpu_local *cpu_local) {
+    
+    apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_DISABLED); // disable apic timer (if enabled)
+    apic_write(TIMER_DIVIDE_CONFIGURATION_REGISTER, TIMER_DIVIDE_1); // divide by 1
+    apic_write(TIMER_INITIAL_COUNT_REGISTER, 10240 << 2); // set counter
+
+    set_interrupt_handler(this_cpu(interrupt_handlers), 32, apic_timer_setup_interrupt);
+
+    boot_info->ap_startup_done = 1; // boot up other cores
+
+    while (timer_phase < 1);
+    
+    apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_PERIODIC); // enable periodic timer
+    apic_write(TIMER_INITIAL_COUNT_REGISTER, 10240 << 2); // set counter
+    
+    while (timer_phase < 2);
+
+    apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_DISABLED); // disable apic timer
+    
+    // set regular interrupt handlers
+    cpu_local->interrupt_handlers = &interrupt_handlers;
+
+    long long apic_speed = ((10240 << 2) * this_cpu(apic_ticks));
+    cpu_local->ms_counter = apic_speed / timer_calib_ms;
+    cpu_local->apic_time = 0;
+
+    apic_write(TIMER_INITIAL_COUNT_REGISTER, cpu_local->ms_counter); // set counter (for 1 ms)
+    apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_PERIODIC); // enable periodic timer (to enable sleep)
 }
 
 unsigned long long get_time() {

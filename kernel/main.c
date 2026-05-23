@@ -29,7 +29,6 @@ uint8_t* video_buffer = (uint8_t*) 0xA0000;
 struct cpu_local *cpu_locals;
 int cpu_count = 0;
 
-const int timer_calib_ms = 200;
 volatile int timer_phase = 0;
 
 struct ap_boot_info* boot_info = (struct ap_boot_info*) AP_BOOT_INFO_ADDR;
@@ -39,7 +38,7 @@ void ap_kernel_main();
 void thread_idle() {
     printf("cpu %d idle\n", this_cpu(cpu_id));
     for(;;) {
-        
+        asm volatile ("pause");
     }
 }
 
@@ -93,6 +92,7 @@ void kernel_main() {
     struct cpu_local *cpu_local = &cpu_locals[cpu_count++];
     
     cpu_local->cpu_id = 0;
+    cpu_local->next_task = (void*)0;
     
     struct gdt_entry* gdt = kmalloc(sizeof(struct gdt_entry) * 5);
     gdt_setup(gdt, 5);
@@ -134,6 +134,7 @@ void ap_kernel_main() {
     struct cpu_local *cpu_local = &cpu_locals[cpu_count++];
     
     cpu_local->cpu_id = boot_info->cpu_id;
+    cpu_local->next_task = (void*)0;
     cpu_local->kernel_stack = boot_info->stack_ptr;
 
     cpu_enable_sse();
@@ -154,36 +155,10 @@ void ap_kernel_main() {
     
     sti();
     
-    apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_DISABLED); // disable apic timer (if enabled)
-    apic_write(TIMER_DIVIDE_CONFIGURATION_REGISTER, TIMER_DIVIDE_1); // divide by 1
-    apic_write(TIMER_INITIAL_COUNT_REGISTER, 10240 << 2); // set counter
-
-    set_interrupt_handler(this_cpu(interrupt_handlers), 32, apic_timer_setup_interrupt);
-
-    boot_info->ap_startup_done = 1; // boot up other cores
-
-    while (timer_phase < 1);
-    
-    apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_PERIODIC); // enable periodic timer
-    apic_write(TIMER_INITIAL_COUNT_REGISTER, 10240 << 2); // set counter
-    
-    while (timer_phase < 2);
-
-    apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_DISABLED); // disable apic timer
-    
-    // set regular interrupt handlers
-    cpu_local->interrupt_handlers = &interrupt_handlers;
-
-    long long apic_speed = ((10240 << 2) * this_cpu(apic_ticks));
-    cpu_local->ms_counter = apic_speed / timer_calib_ms;
-    cpu_local->apic_time = 0;
-
-    apic_write(TIMER_INITIAL_COUNT_REGISTER, cpu_local->ms_counter); // set counter (for 1 ms)
-    apic_write(LVT_TIMER_REGISTER, TIMER_INTERRUPT | TIMER_PERIODIC); // enable periodic timer (to enable sleep)
+    timer_setup_ap(cpu_local);
 
     cpu_local->scheduler = scheduler_init();
     scheduler_add_task(cpu_local->scheduler, task_create((uint64_t) thread_idle));
-    scheduler_add_task(cpu_local->scheduler, task_create((uint64_t) thread_test));
 
     for(;;){
         
