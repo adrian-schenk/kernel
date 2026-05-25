@@ -3,6 +3,7 @@ include ../Makefile.config
 # Define variables
 TARGET = kernel.elf
 OBJ = main.o kmalloc.o graphics.o font.o bitmap.o console.o printf.o string.o gdt.o idt.o page.o tss.o isr.o interrupt.o syscall.o apic.o smp.o sdt.o timer.o sleep.o task.o scheduler.o spinlock.o context.o
+DEV_DEPS = $(wildcard ../dev/*.c ../dev/*.S ../dev/*.h)
 
 .PHONY: all clean
 
@@ -15,7 +16,7 @@ $(TARGET): $(OBJ) ../arch/x86/boot/kernelcore_64.o ../dev/devs.o
 	$(LD) $(LDFLAGS) -e _start64 -Ttext 0x80000 -o $(TARGET) ../arch/x86/boot/kernelcore_64.o $(OBJ) ../dev/devs.o
 	objcopy -O binary kernel.elf kernel.bin
 
-../dev/devs.o:
+../dev/devs.o: $(DEV_DEPS)
 	$(MAKE) -C ../dev devs.o
 
 %.o: %.c
