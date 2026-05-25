@@ -2,6 +2,8 @@
 #include "kmalloc.h"
 #include "apic.h"
 #include "printf.h"
+#include "spinlock.h"
+#include "interrupt.h"
 
 scheduler_t *scheduler_init() {
   scheduler_t *scheduler = kmalloc(sizeof(scheduler_t));
@@ -20,7 +22,11 @@ static task_t *scheduler_pick_next(scheduler_t *scheduler) {
 
 void scheduler_tick(scheduler_t *scheduler) {
   if (!scheduler) return;
+  cli();
+  lock(&scheduler->lock);
   task_t *next = scheduler_pick_next(scheduler);
+  unlock(&scheduler->lock);
+  sti();
   if (next) {
     apic_write(EOI_REGISTER, 0); // send end of interrupt signal to apic
     task_switch_to(next);

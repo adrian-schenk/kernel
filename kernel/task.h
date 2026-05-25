@@ -4,6 +4,7 @@
 typedef struct task {
   uint64_t rsp;
   uint64_t id;
+  uint64_t rsp_base;
 } task_t;
 
 task_t *task_create(uint64_t entry);

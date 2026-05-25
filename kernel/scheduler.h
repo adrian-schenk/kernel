@@ -8,6 +8,7 @@ typedef struct scheduler {
   task_t *queue[SCHEDULER_QUEUE_SIZE];
   int count;
   int head;
+  int lock;
 } scheduler_t;
 
 scheduler_t *scheduler_init();

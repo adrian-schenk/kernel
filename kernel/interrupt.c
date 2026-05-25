@@ -4,9 +4,39 @@
 #include "io.h"
 #include "timer.h"
 #include "cpu.h"
+#include "spinlock.h"
+
+const char* interrupt_names[] = {
+    "Divide Error",
+    "Debug",
+    "Non-Maskable Interrupt",
+    "Breakpoint",
+    "Overflow",
+    "Bound Range Exceeded",
+    "Invalid Opcode",
+    "Device Not Available",
+    "Double Fault",
+    "Coprocessor Segment Overrun",
+    "Invalid TSS",
+    "Segment Not Present",
+    "Stack-Segment Fault",
+    "General Protection Fault",
+    "Page Fault",
+    "(Intel reserved)",
+    "x87 Floating-Point Exception",
+    "Alignment Check",
+    "Machine Check",
+    "SIMD Floating-Point Exception",
+    "Virtualization Exception",
+    "Control Protection Exception"
+};
 
 void unknown_interrupt(uint64_t interrupt_number, uint64_t error_code) {
-    printf("received interrupt %d with error: %d on cpu: %d\n", interrupt_number, error_code, this_cpu(cpu_id));
+    if(interrupt_number < sizeof(interrupt_names) / sizeof(interrupt_names[0])) {
+        printf("INTR: %s with error code: %d on cpu: %d\n", interrupt_names[interrupt_number], error_code, this_cpu(cpu_id));
+    } else {
+        printf("INTR: %d with error code: %d on cpu: %d\n", interrupt_number, error_code, this_cpu(cpu_id));
+    }
     for(;;);
 }
 
