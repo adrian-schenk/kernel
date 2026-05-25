@@ -22,6 +22,7 @@
 #include "sleep.h"
 #include "task.h"
 #include "scheduler.h"
+#include <keyboard.h>
 
 uint16_t video_xbytes = 1024 * 3, video_xres = 1024, video_yres = 768;
 uint8_t* video_buffer = (uint8_t*) 0xA0000;
@@ -104,6 +105,8 @@ void kernel_main() {
     cpu_local->apic_id = apic_read(LAPIC_ID_REGISTER) >> 24;
 
     __write_msr(MSR_GS_BASE, (uint64_t)cpu_local); // write locals before interrupts are enabled
+
+    keyboard_init();
 
     sti();
     

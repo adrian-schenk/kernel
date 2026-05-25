@@ -50,6 +50,7 @@ void ioapic_setup() {
         pt_map_page(&kernel_pml4, IOAPIC_VIRT + i * PAGE_SIZE, 0xFEC00000 + i * PAGE_SIZE, PAGE_PRESENT | PAGE_WRITABLE | PAGE_PWT | PAGE_PCD);
     }
 
+    // keyboard IRQ1
     uint32_t low =
     0x21        // vector
     | (0 << 8)    // fixed delivery

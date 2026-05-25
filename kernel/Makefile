@@ -10,13 +10,16 @@ OBJ = main.o kmalloc.o graphics.o font.o bitmap.o console.o printf.o string.o gd
 all: $(TARGET)
 
 # Rule to create the target binary
-$(TARGET): $(OBJ) ../arch/x86/boot/kernelcore_64.o
+$(TARGET): $(OBJ) ../arch/x86/boot/kernelcore_64.o ../dev/devs.o
 	# link the kernel binary
-	$(LD) $(LDFLAGS) -e _start64 -Ttext 0x80000 -o $(TARGET) ../arch/x86/boot/kernelcore_64.o $(OBJ)
+	$(LD) $(LDFLAGS) -e _start64 -Ttext 0x80000 -o $(TARGET) ../arch/x86/boot/kernelcore_64.o $(OBJ) ../dev/devs.o
 	objcopy -O binary kernel.elf kernel.bin
 
+../dev/devs.o:
+	$(MAKE) -C ../dev devs.o
+
 %.o: %.c
-	${CC} ${CFLAGS}  $< -o $@
+	${CC} ${CFLAGS}  $< -o $@ -I../dev
 
 %.o: %.S
 	${CC} ${CFLAGS}  $< -o $@
