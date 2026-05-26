@@ -22,6 +22,7 @@
 #include "sleep.h"
 #include "task.h"
 #include "scheduler.h"
+#include "pci.h"
 #include <keyboard.h>
 
 uint16_t video_xbytes = 1024 * 3, video_xres = 1024, video_yres = 768;
@@ -37,15 +38,9 @@ struct ap_boot_info* boot_info = (struct ap_boot_info*) AP_BOOT_INFO_ADDR;
 void ap_kernel_main();
 
 void thread_idle() {
-    printf("cpu %d idle\n", this_cpu(cpu_id));
     for(;;) {
-        asm volatile ("pause");
+        
     }
-}
-
-void thread_test() {
-    printf("Hello from cpu thread %d!\n", this_cpu(cpu_id));
-    
 }
 
 void kernel_main() {
@@ -62,6 +57,15 @@ void kernel_main() {
     pt_setup();
     kmalloc_init((char*) KMALLOC_START, KMALLOC_LENGTH);
     
+    struct gdt_entry* gdt = kmalloc(sizeof(struct gdt_entry) * 5);
+    gdt_setup(gdt, 5);
+    
+    interrupts_setup();
+    struct idt* idt = kmalloc(sizeof(struct idt));
+    idt_setup(idt);
+    apic_setup();
+    ioapic_setup();
+
     console_t console = {
         .width = video_xres / 8,
         .height = video_yres / 8,
@@ -72,11 +76,8 @@ void kernel_main() {
     console_setref(&console);
     printf("Console initialized.\n");
     printf("VESA buffer: %p\n", ((VbeModeInfoBlock*)boot_info->vesa_info)->PhysBasePtr);
-    
     boot_info->kernel_entry = (uint32_t) &ap_kernel_main;
 
-    struct cpu_features cpu_features = __get_cpu_features();
-    
     uint64_t rsdp = find_rsdp();
     printf("Found RSDP at %p\n", rsdp);
     rsdp_setup((struct XSDP_t*) rsdp);
@@ -84,43 +85,36 @@ void kernel_main() {
     printf("Found MADT at %p\n", MADT);
 
     enumerate_madt_cores();
-    
+
     if (apic_ids_count > 0)
         cpu_locals = kmalloc(apic_ids_count * sizeof(struct cpu_local));
 
     struct cpu_local *cpu_local = &cpu_locals[cpu_count++];
     
     cpu_local->cpu_id = 0;
-    
-    struct gdt_entry* gdt = kmalloc(sizeof(struct gdt_entry) * 5);
-    gdt_setup(gdt, 5);
-    
-    interrupts_setup();
     cpu_local->interrupt_handlers = &interrupt_handlers;
-    struct idt* idt = kmalloc(sizeof(struct idt));
-    idt_setup(idt);
-    apic_setup();
-    ioapic_setup();
-    
     cpu_local->apic_id = apic_read(LAPIC_ID_REGISTER) >> 24;
 
     __write_msr(MSR_GS_BASE, (uint64_t)cpu_local); // write locals before interrupts are enabled
 
     keyboard_init();
-
+    
+    pci_init();
+    
     sti();
     
     timer_setup();
-
+    
     smp_setup();
 
     timer_phase = 1;
     sleep(timer_calib_ms);
     timer_phase = 2;
 
+    cli();
     cpu_local->scheduler = scheduler_init();
     scheduler_add_task(cpu_local->scheduler, task_create((uint64_t) thread_idle));
-    scheduler_add_task(cpu_local->scheduler, task_create((uint64_t) thread_test));
+    sti();
 
     for(;;){
         
@@ -156,8 +150,10 @@ void ap_kernel_main() {
     
     timer_setup_ap(cpu_local);
 
+    cli();
     cpu_local->scheduler = scheduler_init();
     scheduler_add_task(cpu_local->scheduler, task_create((uint64_t) thread_idle));
+    sti();
 
     for(;;){
         

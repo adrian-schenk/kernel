@@ -7,6 +7,8 @@ See the file LICENSE for details.
 #include "kmalloc.h"
 #include "console.h"
 #include "printf.h"
+#include "spinlock.h"
+#include "interrupt.h"
 
 #define ALIGNMENT 8
 
@@ -21,6 +23,8 @@ struct kmalloc_chunk {
 	struct kmalloc_chunk *next;
 	struct kmalloc_chunk *prev;
 };
+
+int kmalloc_lock;
 
 static struct kmalloc_chunk *head = 0;
 
@@ -84,6 +88,7 @@ a chunk of the desired size, and split it if necessary.
 
 void *kmalloc(int length)
 {
+	lock(&kmalloc_lock);
 	// round up length to a multiple of KUNIT
 	int extra = length % KUNIT;
 	if(extra)
@@ -111,6 +116,7 @@ void *kmalloc(int length)
 	c->state = KMALLOC_STATE_USED;
 
 	// return a pointer to the memory following the chunk header
+	unlock(&kmalloc_lock);
 	return (c + 1);
 }
 

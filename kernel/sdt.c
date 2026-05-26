@@ -137,6 +137,7 @@ int xsdt_checksum(struct XSDP_t* ptr) {
 }
 
 void enumerate_madt_cores() {
+    apic_ids_count = 0;
     if (MADT == 0) {
         return;
     }
