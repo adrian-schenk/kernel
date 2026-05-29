@@ -27,6 +27,12 @@ static void printf_putchar(char c){
     console_putchar(c);
 }
 
+static void printf_putstr_len(char* str, int len){
+    for(int i = 0; i < len; i++){
+        console_putchar(str[i]);
+    }
+}
+
 static void printf_putstr(char* str){
     console_putstr(str);
 }
@@ -150,6 +156,8 @@ void printf(const char* str, ...){
     float f;
 	char *string;
     void *ptr;
+    int strlen = -1;
+    char len_vararg = 0;
 
 	va_start(args, str);
 
@@ -159,6 +167,7 @@ void printf(const char* str, ...){
             printf_putchar(*str);
         }
         else{
+            top:
             str++;
             switch(*str){
                 case 'd':
@@ -202,14 +211,43 @@ void printf(const char* str, ...){
                     break;
                 case 's':
                     string = va_arg(args, char*);
-                    printf_putstr(string);
+                    if (strlen >= 0) {
+                        printf_putstr_len(string, strlen);
+                    } else {
+                        if (len_vararg) {
+                            strlen = va_arg(args, int);
+                            printf_putstr_len(string, strlen);
+                        } else 
+                            printf_putstr(string);
+                    }
+                    strlen = -1;
+                    len_vararg = 0;
                     break;
                 case 'c':
                     u = va_arg(args, unsigned int);
                     printf_putchar(u);
                     break;
                 case '0':
-                    break;
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+                    if (strlen < 0)
+                        strlen = *str - '0';
+                    else
+                        strlen = strlen * 10 + (*str - '0');
+                    goto top;
+                case '.':
+                    if (*(str + 1) == '*') {
+                        len_vararg = 1;
+                        str++;
+                        goto top;
+                    }
                 default:
                     printf_putchar(*str);
                     break;
