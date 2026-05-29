@@ -2,6 +2,7 @@
 #include "memlayout.h"
 
 int page_offset = 0;
+int phys_offset = 0;
 
 struct page_table _l1 __attribute__((aligned(4096))) = {0};
 struct page_table _l2 __attribute__((aligned(4096))) = {0};
@@ -90,6 +91,12 @@ static struct page_table *get_next_table(struct page_table *current, uint16_t in
 
     return (struct page_table*)
            (current->entries[index].address << 12);
+}
+
+void *pt_alloc_page_phys(int count) {
+    uint64_t virt = PHYS_TABLE_REGION + phys_offset;
+    phys_offset += count * PAGE_SIZE;
+    return (void*)virt;
 }
 
 void pt_clear_page(void* p) {
