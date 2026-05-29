@@ -38,9 +38,13 @@ void ahci_init() {
 		region = pt_alloc_page_phys(1);
 		hba_cmd_tbl_t *cmd_tbl = region;
 
-		cmd_hdrs[0].prdtl = 1; // 1 entry in prdt
-		cmd_hdrs[0].ctba = (uint32_t)(uintptr_t)cmd_tbl;
-		cmd_hdrs[0].cfl = sizeof(fis_reg_h2d_t) / 4;
+		char cmdslot = ahci_get_cmdslot(port);
+		if (cmdslot == -1)
+			return;
+
+		cmd_hdrs[cmdslot].prdtl = 1; // 1 entry in prdt
+		cmd_hdrs[cmdslot].ctba = (uint32_t)(uintptr_t)cmd_tbl;
+		cmd_hdrs[cmdslot].cfl = sizeof(fis_reg_h2d_t) / 4;
 
 		// read prdt 4KB for now
 		cmd_tbl->prdt_entry[0].dba = pt_alloc_page_phys(1);
@@ -82,6 +86,26 @@ void ahci_init() {
 		}
 
 		printf("%s", (char*)(uintptr_t)cmd_tbl->prdt_entry[0].dba);
+}
+
+int ahci_read(hba_port_t *port, uint64_t start_lba, uint16_t sector_count, void* buf) {	
+	return 0;
+}
+
+int ahci_write(hba_port_t *port, uint64_t start_lba, uint16_t sector_count, void* buf) {
+	return 0;
+}
+
+char ahci_get_cmdslot(hba_port_t *port) {
+	// If not set in shadow register, return error
+	if ((port->tfd & (ATA_DEV_BUSY | ATA_DEV_DRQ)) != 0)
+		return -1;
+
+	for (char i = 0; i < 32; i++) {
+		if ((port->sact & (1 << i)) == 0)
+			return i;
+	}
+	return -1;
 }
 
 void start_cmd(hba_port_t *port) {
@@ -147,9 +171,13 @@ void identify_device(hba_port_t *port)
 	region = pt_alloc_page_phys(1);
 	hba_cmd_tbl_t *cmd_tbl = region;
 
-	cmd_hdrs[0].prdtl = 1; // 1 entry in prdt
-	cmd_hdrs[0].ctba = (uint32_t)(uintptr_t)cmd_tbl;
-	cmd_hdrs[0].cfl = sizeof(fis_reg_h2d_t) / 4;
+	char cmdslot = ahci_get_cmdslot(port);
+	if (cmdslot == -1)
+		return;
+
+	cmd_hdrs[cmdslot].prdtl = 1; // 1 entry in prdt
+	cmd_hdrs[cmdslot].ctba = (uint32_t)(uintptr_t)cmd_tbl;
+	cmd_hdrs[cmdslot].cfl = sizeof(fis_reg_h2d_t) / 4;
 
 	// read prdt 512 bytes for now
 	uint16_t *buf = cmd_tbl->prdt_entry[0].dba = pt_alloc_page_phys(1);
@@ -186,6 +214,8 @@ void identify_device(hba_port_t *port)
 	{
 		printf("Identify failed! serr: %x\n", port->serr);
 	}
+
+	end_cmd(port);
 }
 
 // Check device type

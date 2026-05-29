@@ -312,3 +312,8 @@ void start_cmd();
 void end_cmd();
 
 void identify_device(hba_port_t *port);
+
+char ahci_get_cmdslot(hba_port_t *port);
+
+int ahci_read(hba_port_t *port, uint64_t start_lba, uint16_t sector_count, void* buf);
+int ahci_write(hba_port_t *port, uint64_t start_lba, uint16_t sector_count, void* buf);
