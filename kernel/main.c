@@ -23,6 +23,7 @@
 #include "task.h"
 #include "scheduler.h"
 #include "pci.h"
+#include "ahci.h"
 #include <keyboard.h>
 
 uint16_t video_xbytes = 1024 * 3, video_xres = 1024, video_yres = 768;
@@ -100,6 +101,7 @@ void kernel_main() {
     keyboard_init();
     
     pci_init();
+    ahci_init();
     
     sti();
     
