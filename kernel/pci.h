@@ -3,9 +3,29 @@
 #include <stdint.h>
 #include "printf.h"
 
-#define PCI_MAX_BUSES 256
+#define PCI_MAX_BUSES 1
 #define PCI_MAX_DEVICES 32
 #define PCI_MAX_FUNCTIONS 8
+
+typedef struct pci_bar {
+  uint32_t base;
+  char prefetchable;
+  char is_io;
+} pci_bar_t;
+
+typedef struct pci_device {
+    uint8_t bus;
+    uint8_t device;
+    uint8_t function;
+    uint16_t vendor_id;
+    uint16_t device_id;
+    uint8_t class_code;
+    uint8_t subclass;
+    pci_bar_t bars[6];
+} pci_device_t;
+
+extern pci_device_t *pci_devices;
+extern int pci_device_count;
 
 void pci_init();
 
@@ -19,3 +39,5 @@ void pci_check_all_buses();
 static void pci_scan_function(uint8_t bus, uint8_t device, uint8_t function);
 static void pci_scan_device(uint8_t bus, uint8_t device);
 static void pci_find_ahci();
+
+pci_device_t *pci_find_class_subclass(int class, int subclass);

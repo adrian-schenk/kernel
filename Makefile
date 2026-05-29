@@ -3,10 +3,10 @@
 all: build
 
 run:
-	qemu-system-x86_64 -drive format=raw,file=disk.img -vga std -monitor stdio -cpu qemu64 -smp 4 -display gtk -device ahci,id=ahci0
+	qemu-system-x86_64 -drive id=disk0,format=raw,file=disk.img -drive id=disk1,format=raw,file=disk1.img,if=none -vga std -monitor stdio -cpu qemu64 -smp 4 -display gtk -device ahci,id=ahci0 -device ide-hd,drive=disk1,bus=ahci0.0
 
 run-gdb:
-	qemu-system-x86_64 -drive format=raw,file=disk.img -vga std -monitor stdio -cpu qemu64 -smp 4 -S -s -display gtk -device ahci,id=ahci0
+	qemu-system-x86_64 -drive id=disk0,format=raw,file=disk.img -drive id=disk1,format=raw,file=disk1.img,if=none -vga std -monitor stdio -cpu qemu64 -smp 4 -S -s -display gtk -device ahci,id=ahci0 -device ide-hd,drive=disk1,bus=ahci0.0
 
 build: build-arch build-kernel rebuild-boot
 	# Write the boot sector to the first sector
@@ -19,6 +19,10 @@ build: build-arch build-kernel rebuild-boot
 
 	cat boot_aligned.bin kernelcore_aligned.bin trampoline_aligned.bin kernel_aligned.bin > disk.img
 	
+rebuild-disk1:
+	rm disk1.img
+	dd if=/dev/zero count=1024 bs=1024 | tr '\000' '\001' > disk1.img
+
 rebuild-boot:
 	python scripts/build.py
 
