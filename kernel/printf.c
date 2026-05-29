@@ -143,7 +143,7 @@ static void printf_putfloat(float n, int len, int precision){
     }
 }
 
-void printf(const char* str, ...){
+int printf(const char* str, ...){
 
     cli();
     lock(&spinlock);

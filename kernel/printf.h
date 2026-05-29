@@ -3,4 +3,4 @@
 #include "string.h"
 #include "console.h"
 
-void printf(const char* str, ...);
+int printf(const char* str, ...);
