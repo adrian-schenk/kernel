@@ -146,7 +146,7 @@ static void pci_scan_function(uint8_t bus, uint8_t device, uint8_t function)
     pci_print_bar(bar, i);
   }
 
-  printf("      id \"\"\n");
+  printf("\n");
 
   pci_device_count++;
 
