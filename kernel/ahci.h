@@ -23,6 +23,20 @@
 #define HBA_PxCMD_FR 1 << 14
 #define HBA_PxCMD_CR 1 << 15
 
+#define MAX_PRDT_ENTRIES 65535
+#define PRDT_MAX_BYTES (4 * 1024 * 1024 - 1)
+
+#define HBA_PxIS_TFES (1 << 30) // Task file error status
+
+typedef struct drive {
+	char port;
+	uint64_t size;
+	char model[41];
+} drive_t;
+
+extern drive_t drives[32];
+extern int drive_count;
+
 typedef enum
 {
 	FIS_TYPE_REG_H2D	= 0x27,	// Register FIS - host to device
@@ -303,17 +317,27 @@ typedef struct hba_cmd_tbl
 	uint8_t  rsv[48];	// Reserved
 
 	// 0x80
-	struct hba_prdt_entry	prdt_entry[1];	// Physical region descriptor table entries, 0 ~ 65535
+	struct hba_prdt_entry	prdt_entry[32];	// Physical region descriptor table entries, 0 ~ 65535
 } hba_cmd_tbl_t;
+
+typedef struct port {
+	struct hba_port *port;
+	struct cmd_hdr *cmd_hdrs;
+	struct hba_cmd_tbl cmd_tbls[32];
+	uint32_t free_slots;
+} port_t;
+
+extern port_t ports[32];
 
 void ahci_init();
 
 void start_cmd();
-void end_cmd();
+void stop_cmd();
 
 void identify_device(hba_port_t *port);
 
-char ahci_get_cmdslot(hba_port_t *port);
+char ahci_get_cmdslot(int portnum);
+void ahci_free_cmdslot(int portnum, char slot);
 
-int ahci_read(hba_port_t *port, uint64_t start_lba, uint16_t sector_count, void* buf);
-int ahci_write(hba_port_t *port, uint64_t start_lba, uint16_t sector_count, void* buf);
+int ahci_read(hba_port_t *port, uint64_t addr, uint64_t size, void* buf);
+int ahci_write(hba_port_t *port, uint64_t addr, uint64_t size, void* buf);

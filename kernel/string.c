@@ -9,6 +9,13 @@ int strlen(char * str){
     return len;
 }
 
+void strncpy(char * dest, char * src, unsigned int n){
+    for(int i = 0; i < n; i++){
+        dest[i] = src[i];
+    }
+    dest[n-1] = '\0';
+}
+
 int is_int(char c){
     if(c >= '0' && c <= '9'){
         return 1;
