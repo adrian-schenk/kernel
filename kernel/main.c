@@ -24,6 +24,7 @@
 #include "scheduler.h"
 #include "pci.h"
 #include "ahci.h"
+#include "buddy_alloc.h"
 #include <keyboard.h>
 
 uint16_t video_xbytes = 1024 * 3, video_xres = 1024, video_yres = 768;
@@ -57,6 +58,7 @@ void kernel_main() {
     
     pt_setup();
     kmalloc_init((char*) KMALLOC_START, KMALLOC_LENGTH);
+    buddy_init();
     
     struct gdt_entry* gdt = kmalloc(sizeof(struct gdt_entry) * 5);
     gdt_setup(gdt, 5);
