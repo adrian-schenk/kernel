@@ -5,6 +5,7 @@
 | Bootloader | `0x7C00` | `0x7DFF` | `0x200` (512 B) | BIOS boot sector load area (`BOOTBLOCK_START`) |
 | Interrupt stack top | `0xFFF0` | `0xFFF0` | 1 address | Initial stack top (`INTERRUPT_STACK_TOP`) |
 | BSP PM setup | `0x1000` | `0x1000` | entry address | Protected-mode setup and long-mode transition (`PM_START`) |
+| BIOS Memory Map | `0x5000` | `0x7000` | 0x2000 | BIOS Memory Map Information from INT 15h E820 |
 | TSS region | `0x7000` | `0x7000` | base address | TSS structure base (`TSS_REGION`) |
 | AP boot info | `0x8000` | `0x8000` | base address | AP bootstrap info pointer area (`AP_BOOT_INFO_ADDR`) |
 | Trampoline | `0x10000` | `0x10000` | trampoline |

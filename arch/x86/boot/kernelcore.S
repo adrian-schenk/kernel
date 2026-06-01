@@ -8,6 +8,8 @@ _start:
 
 _realstart:
 
+    call .query_memory_map
+
     mov	%cs, %ax		# Set up the extra segment
     mov	%ax, %es		# with the data segment
     mov	%ax, %ds        # Set up the data segment
@@ -33,7 +35,7 @@ _realstart:
 	mov	$0x4f01, %ax
 	mov	%bx, %cx
 	int	$0x10
-    
+
     mov %cs, %ax
     mov %ax, %es
 
@@ -68,6 +70,48 @@ _realstart:
 .vbe_not_supported:
     # Handle VBE not supported case (e.g., print message, halt, etc.)
     hlt
+
+.query_memory_map:
+
+    movw $0x700, %ax
+    movw %ax, %es
+
+    xor %ebx, %ebx
+
+    mov $4, %di
+
+    movl $0x534D4150, %edx
+.query_memory_map_loop:
+    xor %eax, %eax
+    movw $0xE820, %ax
+    
+    xor %ecx, %ecx
+    mov $24, %ecx
+    
+    int $0x15
+    
+    cmpl $0x534d4150, %eax
+    jne .query_memory_map_err
+    
+    add %ecx, %edi
+    
+    push %ds
+    mov $0, %ax
+    mov %ax, %ds
+    mov $0x7000, %eax
+    mov (%eax), %ecx
+    inc %ecx
+    mov %ecx, (%eax)
+    pop %ds
+
+    test %ebx, %ebx
+    je .query_memory_map_finish
+
+    jmp .query_memory_map_loop
+
+.query_memory_map_finish:
+.query_memory_map_err:
+    ret
 
 .code32
 pm_start:

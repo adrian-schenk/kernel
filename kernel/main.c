@@ -60,6 +60,10 @@ void kernel_main() {
     kmalloc_init((char*) KMALLOC_START, KMALLOC_LENGTH);
     buddy_init();
     
+    uint32_t *memory_map = (uint32_t*) 0x7000;
+    int memory_map_len = (*((uint32_t*) memory_map++));
+    
+
     struct gdt_entry* gdt = kmalloc(sizeof(struct gdt_entry) * 5);
     gdt_setup(gdt, 5);
     
@@ -78,6 +82,26 @@ void kernel_main() {
     };
     console_setref(&console);
     printf("Console initialized.\n");
+    printf("Memory map length: %d, at 0x%x\n", memory_map_len, memory_map);
+    for (int i = 0; i < memory_map_len; i++) {
+        uint32_t base_addr_low = *memory_map++;
+        uint32_t base_addr_high = *memory_map++;
+        uint64_t base_addr = ((uint64_t)base_addr_high << 32) | base_addr_low;
+        uint32_t length_low = *memory_map++;
+        uint32_t length_high = *memory_map++;
+        uint64_t length = ((uint64_t)length_high << 32) | length_low;
+        uint32_t type = *memory_map++;
+        const char* type_str;
+        switch (type) {
+            case 1: type_str = "Usable"; break;
+            case 2: type_str = "Reserved"; break;
+            case 3: type_str = "ACPI Reclaimable"; break;
+            case 4: type_str = "ACPI NVS"; break;
+            case 5: type_str = "Bad Memory"; break;
+            default: type_str = "Unknown"; break;
+        }
+        printf("Memory region %d: Base Address: %p, Length: %p, Type: %s\n", i, base_addr, length, type_str);
+    }
     printf("VESA buffer: %p\n", ((VbeModeInfoBlock*)boot_info->vesa_info)->PhysBasePtr);
     boot_info->kernel_entry = (uint32_t) &ap_kernel_main;
 
