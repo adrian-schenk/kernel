@@ -25,6 +25,9 @@
 #include "pci.h"
 #include "ahci.h"
 #include "buddy_alloc.h"
+#include "ramfs.h"
+#include <blkdev.h>
+#include <ext4/ext4.h>
 #include <keyboard.h>
 
 uint16_t video_xbytes = 1024 * 3, video_xres = 1024, video_yres = 768;
@@ -59,10 +62,9 @@ void kernel_main() {
     pt_setup();
     kmalloc_init((char*) KMALLOC_START, KMALLOC_LENGTH);
     buddy_init();
-    
+
     uint32_t *memory_map = (uint32_t*) 0x7000;
     int memory_map_len = (*((uint32_t*) memory_map++));
-    
 
     struct gdt_entry* gdt = kmalloc(sizeof(struct gdt_entry) * 5);
     gdt_setup(gdt, 5);
@@ -129,6 +131,9 @@ void kernel_main() {
     pci_init();
     ahci_init();
     
+    fs_handle_t* ext4 = ext4_handle_create(ahci_blkdev_create(0));
+    int i = ext4->mount(ext4);
+
     sti();
     
     timer_setup();
