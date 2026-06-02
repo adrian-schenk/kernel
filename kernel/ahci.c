@@ -50,8 +50,10 @@ void ahci_init()
 	}
 }
 
-int ahci_read(hba_port_t *port, uint64_t addr, uint64_t size, void *buf)
+int ahci_read(void *ctx, uint64_t addr, uint64_t size, void *buf)
 {
+	hba_port_t *port = ports[((ahci_blkdev_t *)ctx)->port].port;
+
 	if (!drives[port - abar->ports].size || size == 0)
 		return -1;
 
@@ -137,8 +139,10 @@ int ahci_read(hba_port_t *port, uint64_t addr, uint64_t size, void *buf)
 	return 0;
 }
 
-int ahci_write(hba_port_t *port, uint64_t addr, uint64_t size, void *buf)
+int ahci_write(void *ctx, uint64_t addr, uint64_t size, void *buf)
 {
+	hba_port_t *port = ports[((ahci_blkdev_t *)ctx)->port].port;
+
 	stop_cmd(port);
 
 	if (!drives[port - abar->ports].size || size == 0)
@@ -344,13 +348,19 @@ void identify_device(hba_port_t *port)
 	{
 		uint64_t sectors = (uint64_t)buf[100];
 		char model_str[41];
+		char serial_str[21];
 		for (int i = 0; i < 20; i += 2)
 		{
-			*((uint16_t *)(model_str + i)) = ntohs(*(uint16_t *)((char *)((uint32_t *)buf + 13) + i));
+			*((uint16_t *)(model_str + i)) = ntohs(*(uint16_t *)((char *)((uint16_t *)buf + 27) + i));
 		}
 		model_str[40] = '\0';
+		for (int i = 0; i < 20; i += 2)
+		{
+			*((uint16_t *)(serial_str + i)) = ntohs(*(uint16_t *)((char *)((uint16_t *)buf + 10) + i));
+		}
+		serial_str[20] = '\0';
 		uint64_t size_bytes = sectors * 512;
-		printf("Found Drive: %s with size %d!\n", model_str, size_bytes);
+		printf("Found Drive: %s (S/N: %s) with size %d!\n", model_str, serial_str, size_bytes);
 
 		drives[drive_count].port = port - abar->ports;
 		drives[drive_count].size = size_bytes;
@@ -389,4 +399,19 @@ static int check_type(hba_port_t *port)
 	default:
 		return AHCI_DEV_SATA;
 	}
+}
+
+blkdev_handle_t* ahci_blkdev_create(int port)
+{
+	if (port < 0 || port >= drive_count)
+		return 1;
+
+	ahci_blkdev_t *dev = kmalloc(sizeof(ahci_blkdev_t));
+	dev->port = port;
+
+	blkdev_handle_t *handle = kmalloc(sizeof(blkdev_handle_t));
+	handle->ctx = dev;
+	handle->read = ahci_read;
+	handle->write = ahci_write;
+	return handle;
 }

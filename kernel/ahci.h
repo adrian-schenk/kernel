@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <fs.h>
 
 #define	SATA_SIG_ATA	0x00000101	// SATA drive
 #define	SATA_SIG_ATAPI	0xEB140101	// SATAPI drive
@@ -27,6 +28,12 @@
 #define PRDT_MAX_BYTES (4 * 1024 * 1024 - 1)
 
 #define HBA_PxIS_TFES (1 << 30) // Task file error status
+
+typedef struct ahci_blkdev {
+	int port;
+} ahci_blkdev_t;
+
+blkdev_handle_t* ahci_blkdev_create(int port);
 
 typedef struct drive {
 	char port;
@@ -339,5 +346,5 @@ void identify_device(hba_port_t *port);
 char ahci_get_cmdslot(int portnum);
 void ahci_free_cmdslot(int portnum, char slot);
 
-int ahci_read(hba_port_t *port, uint64_t addr, uint64_t size, void* buf);
-int ahci_write(hba_port_t *port, uint64_t addr, uint64_t size, void* buf);
+int ahci_read(void *port, uint64_t addr, uint64_t size, void* buf);
+int ahci_write(void *port, uint64_t addr, uint64_t size, void* buf);
