@@ -39,7 +39,6 @@ clean:
 	find . -name "*.o" -type f -delete
 	find . -name "*.bin" -type f -delete
 	find . -name "*.elf" -type f -delete
-	find . -name "*.img" -type f -delete
 	$(MAKE) -C kernel clean
 	$(MAKE) -C libs clean
 	$(MAKE) -C arch clean
