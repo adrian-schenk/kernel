@@ -99,23 +99,6 @@ int ext4_mount(fs_handle_t *handle)
       printf("Group table size: %d bytes\n", group_size);
       printf("Inodes per Group: %d\n", sb->s_inodes_per_group);
       printf("Inode size: %d bytes\n", inode_size);
-
-      handle->blk_dev->read(handle->blk_dev->ctx, 2048, block_size * ((group_count * sb->s_desc_size / block_size) + (group_count * sb->s_desc_size % block_size ? 1 : 0)), buf);
-
-      for (int i = 0; i < group_count; i++)
-      {
-        uint32_t bg_block_bitmap = *(uint32_t *)(buf + i * sb->s_desc_size + 0);
-        uint32_t bg_inode_bitmap = *(uint32_t *)(buf + i * sb->s_desc_size + 4);
-        uint32_t bg_inode_table = *(uint32_t *)(buf + i * sb->s_desc_size + 8);
-        uint16_t dir_count = *(uint16_t *)(buf + i * sb->s_desc_size + 16);
-
-        kfree(buf);
-
-        int i = ext4_traverse_root(handle->blk_dev, &fs->superblock, "/abc.txt");
-        ext4_read_file(handle->blk_dev, &fs->superblock, i, buf, 1024, 0);
-
-        
-      }
     }
   }
   return 0;
