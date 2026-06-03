@@ -74,16 +74,18 @@ intr48:
     jmp syscl_handler
 
 intr_handler:
-syscl_handler:
     PUSH_REGS
     movq 120(%rsp), %rdi
     movq 128(%rsp), %rsi
     call interrupt_handler
     jmp intr_return
+syscl_handler:
+    call syscall_handler
+    jmp syscl_return
     
 intr_return:
-syscl_return:
     POP_REGS
+syscl_return:
     addq $16, %rsp
     iretq
 

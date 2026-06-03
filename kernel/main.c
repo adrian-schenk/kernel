@@ -29,6 +29,7 @@
 #include <blkdev.h>
 #include <ext4/ext4.h>
 #include <keyboard.h>
+#include "syscall.h"
 
 uint16_t video_xbytes = 1024 * 3, video_xres = 1024, video_yres = 768;
 uint8_t* video_buffer = (uint8_t*) 0xA0000;
@@ -123,6 +124,7 @@ void kernel_main() {
     cpu_local->cpu_id = 0;
     cpu_local->interrupt_handlers = &interrupt_handlers;
     cpu_local->apic_id = apic_read(LAPIC_ID_REGISTER) >> 24;
+    cpu_local->scheduler = (void*)0;
 
     __write_msr(MSR_GS_BASE, (uint64_t)cpu_local); // write locals before interrupts are enabled
 
@@ -132,10 +134,11 @@ void kernel_main() {
     ahci_init();
     
     fs_handle_t* ext4 = ext4_handle_create(ahci_blkdev_create(0));
-    int i = ext4->mount(ext4);
+    ext4->mount(ext4);
 
-    sti();
     
+    sti();
+
     timer_setup();
     
     smp_setup();
