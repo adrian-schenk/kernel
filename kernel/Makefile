@@ -2,7 +2,7 @@ include ../Makefile.config
 
 # Define variables
 TARGET = kernel.elf
-OBJ = main.o kmalloc.o graphics.o font.o bitmap.o console.o printf.o string.o gdt.o idt.o page.o tss.o isr.o interrupt.o syscall.o apic.o smp.o sdt.o timer.o sleep.o task.o scheduler.o spinlock.o context.o pci.o ahci.o buddy_alloc.o ramfs.o fd.o memory.o
+OBJ = main.o kmalloc.o graphics.o font.o console.o printf.o string.o gdt.o idt.o page.o tss.o isr.o interrupt.o syscall.o apic.o smp.o sdt.o timer.o sleep.o task.o scheduler.o spinlock.o context.o pci.o ahci.o buddy_alloc.o ramfs.o fd.o memory.o
 DEV_DEPS = $(wildcard ../dev/*.c ../dev/*.S ../dev/*.h)
 FS_DEPS = $(wildcard ../fs/*.c ../fs/*.S ../fs/*.h ../fs/ext4/*.c ../fs/ext4/*.S ../fs/ext4/*.h)
 
