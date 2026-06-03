@@ -144,6 +144,32 @@ typedef struct __attribute__((packed)) ext4_superblock
 
 _Static_assert(sizeof(ext4_superblock_t) == 1024, "ext4 superblock must be exactly 1024 bytes");
 
+typedef struct ext4_group_desc {
+  uint32_t bg_block_bitmap_lo; // Lower 32-bits of location of block bitmap.
+  uint32_t bg_inode_bitmap_lo; // Lower 32-bits of location of inode bitmap.
+  uint32_t bg_inode_table_lo;  // Lower 32-bits of location of inode table.
+  uint16_t bg_free_blocks_count_lo; // Lower 16-bits of free block count.
+  uint16_t bg_free_inodes_count_lo; // Lower 16-bits of free inode count.
+  uint16_t bg_used_dirs_count_lo; // Lower 16-bits of directory count.
+  uint16_t bg_flags; // Block group flags. See the bgflags table below.
+  uint32_t bg_exclude_bitmap_lo; // Lower 32-bits of location of snapshot exclusion bitmap.
+  uint16_t bg_block_bitmap_csum_lo; // Lower 16-bits of the block bitmap checksum.
+  uint16_t bg_inode_bitmap_csum_lo; // Lower 16-bits of the inode bitmap checksum.
+  uint16_t bg_itable_unused_lo; // Lower 16-bits of unused inode count. If set, we needn’t scan past the (sb.s_inodes_per_group - gdt.bg_itable_unused) th entry in the inode table for this group.
+  uint16_t bg_checksum; // Group descriptor
+  uint32_t bg_block_bitmap_hi; // Upper 32-bits of location of block bitmap.
+  uint32_t bg_inode_bitmap_hi; // Upper 32-bits of location of inodes bitmap.
+  uint32_t bg_inode_table_hi; // Upper 32-bits of location of inodes table.
+  uint16_t bg_free_blocks_count_hi; // Upper 16-bits of free block count.
+  uint16_t bg_free_inodes_count_hi; // Upper 16-bits of free inode count.
+  uint16_t bg_used_dirs_count_hi; // Upper 16-bits of directory count.
+  uint16_t bg_itable_unused_hi; // Upper 16-bits of unused inode count.
+  uint32_t bg_exclude_bitmap_hi; // Upper 32-bits of location of snapshot exclusion bitmap.
+  uint16_t bg_block_bitmap_csum_hi; // Upper 16-bits of the block bitmap checksum.
+  uint16_t bg_inode_bitmap_csum_hi; // Upper 16-bits of the inode bitmap checksum.
+  uint32_t bg_reserved; // Padding to 64 bytes.
+} __attribute__((packed)) ext4_group_desc_t;
+
 enum ext4_reserved_inodes {
   EXT4_ROOT_INO = 2, // root directory
   EXT4_ACL_IDX_INO = 3, // ACL index (if ACLs enabled)
@@ -258,7 +284,7 @@ int ext4_mount(fs_handle_t *handle);
 int ext4_unmount(fs_handle_t *handle);
 int ext4_mkfs(fs_handle_t *handle);
 
-void ext4_open(fs_handle_t *handle);
-void ext4_create(fs_handle_t *handle);
-void ext4_remove(fs_handle_t *handle);
-void ext4_close(fs_handle_t *handle);
+int ext4_open(fs_handle_t *handle);
+int ext4_create(fs_handle_t *handle);
+int ext4_remove(fs_handle_t *handle);
+int ext4_close(fs_handle_t *handle);

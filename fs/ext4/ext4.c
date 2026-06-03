@@ -109,9 +109,6 @@ int ext4_mount(fs_handle_t *handle)
         uint32_t bg_inode_table = *(uint32_t *)(buf + i * sb->s_desc_size + 8);
         uint16_t dir_count = *(uint16_t *)(buf + i * sb->s_desc_size + 16);
 
-        printf("Group %d: block bitmap at %d, inode bitmap at %d, inode table at %d with %d directories\n",
-               i, bg_block_bitmap, bg_inode_bitmap, bg_inode_table, dir_count);
-
         kfree(buf);
 
         int i = ext4_traverse_root(handle->blk_dev, &fs->superblock, "/abc.txt");
@@ -133,20 +130,24 @@ int ext4_mkfs(fs_handle_t *handle)
   return 0;
 }
 
-void ext4_open(fs_handle_t *handle)
+int ext4_open(fs_handle_t *handle)
 {
+  return 0;
 }
 
-void ext4_create(fs_handle_t *handle)
+int ext4_create(fs_handle_t *handle)
 {
+  return 0;
 }
 
-void ext4_remove(fs_handle_t *handle)
+int ext4_remove(fs_handle_t *handle)
 {
+  return 0;
 }
 
-void ext4_close(fs_handle_t *handle)
+int ext4_close(fs_handle_t *handle)
 {
+  return 0;
 }
 
 static int ext4_read_file(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64_t inode, uint8_t *buffer, size_t size, size_t offset) {
@@ -192,8 +193,6 @@ static int ext4_read_file(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64
                           extents.arr[i].ee_start_lo * block_size,
                           extents.arr[i].ee_len * block_size,
                           buf);
-
-    printf("%s", buf);
 
     kfree(buf);  
   }
