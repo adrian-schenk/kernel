@@ -21,3 +21,5 @@ void console_write(char* data, int len);
 void console_putchar(char c);
 void console_putint(int i);
 void console_putstr(char* c);
+
+void console_clearline(int line);

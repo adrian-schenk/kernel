@@ -1,65 +1,92 @@
 #include "console.h"
 #include "spinlock.h"
 
-console_t* k_console = {0};
+console_t *k_console = {0};
 
 uint8_t write_lock;
 
-console_t* console_init(){
-    console_t* console = (console_t*) kmalloc(sizeof(struct console));
+console_t *console_init()
+{
+  console_t *console = (console_t *)kmalloc(sizeof(struct console));
 
-    console->height = video_yres / 8;
-    console->width = video_xres / 8;
+  console->height = video_yres / 8;
+  console->width = video_xres / 8;
 
-    console->x = 0;
-    console->y = 0;
-
+  console->x = 0;
+  console->y = 0;
+  return console;
 }
 
-void console_setref(console_t* c){
-    k_console = c;
+void console_setref(console_t *c)
+{
+  k_console = c;
 }
 
-void console_write(char* data, int len){
-    lock(&write_lock);
-    for(int i = 0; i < len; i++){
+void console_write(char *data, int len)
+{
+  lock(&write_lock);
+  for (int i = 0; i < len; i++)
+  {
 
-        if(k_console->x > k_console->width){
-            k_console->y++;
-            k_console->x = 0;
-        }
-
-        if (k_console->y >= k_console->height) {
-            k_console->y = 0;
-            k_console->x = 0;
-        }
-
-        switch(data[i]){
-            case '\0':
-                return;
-                break;
-            case '\n':
-                k_console->y++;
-                k_console->x = 0;
-                break;
-            default:
-                graphics_draw_char(k_console->x * 8, k_console->y * 8, data[i], (graphics_color_t){.red = 255,
-                 .green = 255,
-                 .blue = 255,
-                });
-                k_console->x++;
-        }
+    if (k_console->x > k_console->width)
+    {
+      k_console->y++;
+      k_console->x = 0;
+      if (data[i])
+        console_clearline(k_console->y);
     }
-    unlock(&write_lock);
+
+    if (k_console->y >= k_console->height)
+    {
+      k_console->y = 0;
+      k_console->x = 0;
+      if (data[i])
+        console_clearline(k_console->y);
+    }
+
+    switch (data[i])
+    {
+    case '\0':
+      return;
+      break;
+    case '\n':
+      k_console->y++;
+      k_console->x = 0;
+      break;
+    default:
+      graphics_draw_char(k_console->x * 8, k_console->y * 8, data[i], (graphics_color_t){
+                                                                          .red = 255,
+                                                                          .green = 255,
+                                                                          .blue = 255,
+                                                                      });
+      k_console->x++;
+    }
+  }
+  unlock(&write_lock);
 }
 
-void console_putchar(char c){
-    console_write(&c, 1);
+void console_putchar(char c)
+{
+  console_write(&c, 1);
 }
 
-void console_putint(int i){
+void console_putint(int i)
+{
 }
 
-void console_putstr(char* str){
-    console_write(str, strlen(str));
+void console_putstr(char *str)
+{
+  console_write(str, strlen(str));
+}
+
+void console_clearline(int line)
+{
+  for (int i = 0; i < k_console->width; i++)
+  {
+    graphics_draw_char(i * 8, line * 8, ' ', (graphics_color_t){
+                                                        .red = 0,
+                                                        .green = 0,
+                                                        .blue = 0,
+                                                    });
+  }
 }
