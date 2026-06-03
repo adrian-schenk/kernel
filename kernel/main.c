@@ -67,8 +67,8 @@ void kernel_main() {
     uint32_t *memory_map = (uint32_t*) 0x7000;
     int memory_map_len = (*((uint32_t*) memory_map++));
 
-    struct gdt_entry* gdt = kmalloc(sizeof(struct gdt_entry) * 5);
-    gdt_setup(gdt, 5);
+    struct gdt_entry* gdt = kmalloc(GDT_ENTRY_SIZE * (GDT_ENTRY * 5 + GDT_TSS_ENTRY * 1));
+    gdt_setup(gdt, (GDT_ENTRY * 5 + GDT_TSS_ENTRY * 1));
     
     interrupts_setup();
     struct idt* idt = kmalloc(sizeof(struct idt));
@@ -168,8 +168,8 @@ void ap_kernel_main() {
 
     cpu_enable_sse();
 
-    struct gdt_entry* gdt = kmalloc(GDT_ENTRY_SIZE * (GDT_ENTRY * 3 + GDT_TSS_ENTRY * 1));
-    gdt_setup(gdt, 5);
+    struct gdt_entry* gdt = kmalloc(GDT_ENTRY_SIZE * (GDT_ENTRY * 5 + GDT_TSS_ENTRY * 1));
+    gdt_setup(gdt, (GDT_ENTRY * 5 + GDT_TSS_ENTRY * 1));
 
     struct idt* idt = kmalloc(sizeof(struct idt));
     idt_setup(idt);

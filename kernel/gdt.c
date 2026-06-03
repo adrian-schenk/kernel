@@ -33,16 +33,19 @@ void gdt_setup(struct gdt_entry* gdt, uint16_t gdt_entries) {
     gdt_init.limit = (gdt_entries * sizeof(struct gdt_entry)) - 1;
     gdt_init.base = (uint64_t)gdt;
 
+    int size = 0;
     set_gdt_entry(gdt, 0, 0, 0, 0, 0); // null descriptor
     set_gdt_entry(gdt, 1, 0, 0xFFFFFFFF, GDT_A_PRESENT | GDT_A_PRIVL_0 | GDT_A_CODE_DATA | GDT_A_EXECUTABLE | GDT_A_RW, GDT_F_GRANULARITY | GDT_F_64BIT); // 64-bit kernel code segment
     set_gdt_entry(gdt, 2, 0, 0xFFFFFFFF, GDT_A_PRESENT | GDT_A_PRIVL_0 | GDT_A_CODE_DATA | GDT_A_RW, GDT_F_GRANULARITY); // 64-bit kernel data segment
+    set_gdt_entry(gdt, 3, 0, 0xFFFFFFFF, GDT_A_PRESENT | GDT_A_PRIVL_3 | GDT_A_CODE_DATA | GDT_A_EXECUTABLE | GDT_A_RW, GDT_F_GRANULARITY | GDT_F_64BIT); // 64-bit user code segment
+    set_gdt_entry(gdt, 4, 0, 0xFFFFFFFF, GDT_A_PRESENT | GDT_A_PRIVL_3 | GDT_A_CODE_DATA | GDT_A_RW, GDT_F_GRANULARITY); // 64-bit user data segment
 
     struct tss *gdt_tss = kmalloc(sizeof(struct tss));
     void *interrupt_stack = kmalloc(2048);
     gdt_tss->rsp0 = (void*)((uint8_t*)interrupt_stack + 2048);
     gdt_tss->io_map_base = sizeof(struct tss);
 
-    set_tss_entry(gdt, 3, (uint64_t)gdt_tss, sizeof(struct tss) - 1, 0x89, 0);
+    set_tss_entry(gdt, 5, (uint64_t)gdt_tss, sizeof(struct tss) - 1, 0x89, 0);
 
     gdt_load(gdt_init);
 
@@ -51,11 +54,11 @@ void gdt_setup(struct gdt_entry* gdt, uint16_t gdt_entries) {
 
 void gdt_load(struct gdt_ptr gdt_init) {
     asm volatile ("lgdt %0" : : "m" (gdt_init));
-    asm volatile ("mov $0x18, %ax\n" // Load TSS, so selector value is 3*8=24 or 0x18)
-                "ltr %ax\n");
-
+    asm volatile ("mov $0x28, %ax\n" // Load TSS, so selector value is 5*8=40 or 0x28
+                  "ltr %ax\n");
+    
     asm volatile (
-        "mov $0x10, %%ax\n" // Data segment selector (index 
+        "mov $0x10, %%ax\n" // Data segment selector (index 2)
         "mov %%ax, %%ds\n"
         "mov %%ax, %%es\n"
         "mov %%ax, %%fs\n"

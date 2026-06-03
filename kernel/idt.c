@@ -19,7 +19,7 @@ void idt_setup(struct idt* idt) {
         idt_set_gate(idt, i, 0, 0x08, 0, 0x8E);
     }
 
-    idt_set_gate(idt, 48, 0, 0x08, 0, 0x8E);
+    idt_set_gate(idt, 48, 0, 0x08, 0, 0xEE); // syscall gate with DPL 3
 
     idt_load(idt_init);
 }

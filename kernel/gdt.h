@@ -50,7 +50,7 @@ struct gdt_ptr {
 } __attribute__((packed));
 
 
-#define SEGMENT_DESCRIPTORS 2 // descriptor count without null
+#define SEGMENT_DESCRIPTORS 4 // descriptor count without null
 #define TSS_DESCRIPTORS 1 // tss descriptor count
 
 void set_gdt_entry(struct gdt_entry*, int num, uint32_t base, uint32_t limit, uint8_t access, uint8_t granularity);
