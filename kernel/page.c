@@ -110,8 +110,8 @@ void pt_setup() {
     uint64_t framebuffer_base = (uint64_t)video_mode->PhysBasePtr;
     uint64_t framebuffer_size = (uint64_t)video_mode->BytesPerScanLine * video_mode->YResolution;
 
-    // identity map first 1gb
-    for (int i = 0; i < 0x40000000; i += HUGE_PAGE_SIZE) {
+    // identity map first 128 MiB
+    for (int i = 0; i < 0x8000000; i += HUGE_PAGE_SIZE) {
         pt_map_page_huge(&kernel_pml4, i, i, PAGE_PRESENT | PAGE_WRITABLE);
     }
 
