@@ -39,6 +39,8 @@ fs_handle_t *ext4_handle_create(blkdev_handle_t *blk_dev)
   handle->fremove = ext4_remove;
   handle->fclose = ext4_close;
 
+  handle->fstat = ext4_fstat;
+
   handle->mount = ext4_mount;
   handle->unmount = ext4_unmount;
   handle->mkfs = ext4_mkfs;
@@ -113,9 +115,29 @@ int ext4_mkfs(fs_handle_t *handle)
   return 0;
 }
 
-int ext4_open(fs_handle_t *handle)
+int ext4_open(fs_handle_t *handle, char *path)
 {
-  return 0;
+  ext4_fs_t *fs = (ext4_fs_t *)handle->fs_ctx;
+
+  ext4_superblock_t *sb = &fs->superblock;
+
+  int inode = ext4_traverse_root(handle->blk_dev, sb, path);
+
+  if (inode < 0)
+    return -1;
+
+  ext4_inode_t *inode_ptr = ext4_read_inode(handle->blk_dev, sb, inode);
+  if (inode_ptr == NULL)
+    return -1;
+
+  if (inode_ptr->i_mode & 0x4000)
+  {
+    kfree(inode_ptr);
+    return -2;
+  }
+
+  kfree(inode_ptr);
+  return inode;
 }
 
 int ext4_create(fs_handle_t *handle)
@@ -133,7 +155,13 @@ int ext4_close(fs_handle_t *handle)
   return 0;
 }
 
-static int ext4_read_file(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64_t inode, uint8_t *buffer, size_t size, size_t offset) {
+uint64_t ext4_fstat(fs_handle_t *handle, char *path, char recurse)
+{
+  return 0;
+}
+
+static int ext4_read_file(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64_t inode, uint8_t *buffer, size_t size, size_t offset)
+{
   uint64_t block_size = 1024 << sb->s_log_block_size;
   uint64_t inode_size = sb->s_inode_size;
 
@@ -147,9 +175,9 @@ static int ext4_read_file(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64
 
   uint8_t *buf = kmalloc(block_size);
   blkdev->read(blkdev->ctx,
-                        inode_block * block_size,
-                        block_size,
-                        buf);
+               inode_block * block_size,
+               block_size,
+               buf);
 
   ext4_inode_t *inode_table = (ext4_inode_t *)buf;
   ext4_inode_t *inode_ptr =
@@ -173,11 +201,11 @@ static int ext4_read_file(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64
     buf = kmalloc(extents.arr[i].ee_len * block_size);
 
     blkdev->read(blkdev->ctx,
-                          extents.arr[i].ee_start_lo * block_size,
-                          extents.arr[i].ee_len * block_size,
-                          buf);
+                 extents.arr[i].ee_start_lo * block_size,
+                 extents.arr[i].ee_len * block_size,
+                 buf);
 
-    kfree(buf);  
+    kfree(buf);
   }
 
   return 0;
@@ -254,6 +282,12 @@ static int ext4_traverse_dir(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uin
   while (*path == '/')
     path++;
 
+  if (*path == '\0')
+  {
+    kfree(inode);
+    return dir_inode;
+  }
+
   int path_len = 0;
   while (path[path_len] != '/' && path[path_len] != '\0')
     path_len++;
@@ -278,13 +312,15 @@ static int ext4_traverse_dir(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uin
         // recurse on subdirectory
         if (dir_entry->file_type == 0x2)
         {
-          if (dir_entry->inode != parent_inode && strncmp(dir_entry->name, path, dir_entry->name_len) == 0) {
-            
+          if (dir_entry->inode != parent_inode && strncmp(dir_entry->name, path, dir_entry->name_len) == 0)
+          {
+            kfree(buf);
             return ext4_traverse_dir(blkdev, sb, dir_entry->inode, dir_inode, path + path_len);
           }
         }
         else if (strncmp(dir_entry->name, path, dir_entry->name_len) == 0 && path[path_len] == '\0')
         {
+          kfree(buf);
           return dir_entry->inode;
         }
       }
@@ -301,6 +337,9 @@ static int ext4_traverse_dir(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uin
     kfree(buf);
   }
 
+  kfree(extents.arr);
+  kfree(inode);
+
   return -1;
 }
 
@@ -310,7 +349,7 @@ static ext4_inode_t *ext4_read_inode(blkdev_handle_t *blkdev, ext4_superblock_t 
   uint64_t block_size = 1024 << sb->s_log_block_size;
   uint64_t inodes_per_group = sb->s_inodes_per_group;
   uint64_t inode_size = sb->s_inode_size;
-  
+
   uint64_t inode_bg = (inode_num - 1) / inodes_per_group;
   uint64_t inode_index = (inode_num - 1) % inodes_per_group;
   uint64_t bg_inode_table = ext4_bg_get_inode_tbl_block(blkdev, sb, inode_bg, inode_num);
@@ -328,7 +367,6 @@ static ext4_inode_t *ext4_read_inode(blkdev_handle_t *blkdev, ext4_superblock_t 
   ext4_inode_t *inode_table = (ext4_inode_t *)buf;
   ext4_inode_t *inode =
       (ext4_inode_t *)((uint8_t *)inode_table + inode_offset);
-
 
   ext4_inode_t *result = kmalloc(sizeof(ext4_inode_t));
   *result = *inode;

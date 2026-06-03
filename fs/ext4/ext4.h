@@ -284,7 +284,8 @@ int ext4_mount(fs_handle_t *handle);
 int ext4_unmount(fs_handle_t *handle);
 int ext4_mkfs(fs_handle_t *handle);
 
-int ext4_open(fs_handle_t *handle);
+int ext4_open(fs_handle_t *handle, char *path);
 int ext4_create(fs_handle_t *handle);
 int ext4_remove(fs_handle_t *handle);
 int ext4_close(fs_handle_t *handle);
+uint64_t ext4_fstat(fs_handle_t *handle, char *path, char recurse);
