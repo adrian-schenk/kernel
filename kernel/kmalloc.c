@@ -100,7 +100,7 @@ void *kmalloc(int length)
 	struct kmalloc_chunk *c = head;
 	while(1) {
 		if(!c) {
-			printf("kmalloc: out of memory!\n");
+			kprintf("kmalloc: out of memory!\n");
 			return 0;
 		}
 		if(c->state == KMALLOC_STATE_FREE && c->length >= length)
@@ -154,7 +154,7 @@ void kfree(void *ptr)
 	c--;
 
 	if(c->state != KMALLOC_STATE_USED) {
-		printf("invalid kfree(%x)\n", ptr);
+		kprintf("invalid kfree(%x)\n", ptr);
 		return;
 	}
 
@@ -168,17 +168,17 @@ void kmalloc_debug()
 {
 	struct kmalloc_chunk *c;
 
-	printf("state ptr      prev     next     length\n");
+	kprintf("state ptr      prev     next     length\n");
 
 	for(c = head; c; c = c->next) {
 		if(c->state == KMALLOC_STATE_FREE) {
-			printf("F");
+			kprintf("F");
 		} else if(c->state == KMALLOC_STATE_USED) {
-			printf("U");
+			kprintf("U");
 		} else {
-			printf("kmalloc list corrupted at %x!\n", c);
+			kprintf("kmalloc list corrupted at %x!\n", c);
 			return;
 		}
-		printf("     %x %x %x %d\n", c, c->prev, c->next, c->length);
+		kprintf("     %x %x %x %d\n", c, c->prev, c->next, c->length);
 	}
 }

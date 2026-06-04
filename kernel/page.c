@@ -24,9 +24,9 @@ int pt_map_page(struct page_table *pml4,
     struct page_table *pd;
     struct page_table *pt;
 
-    pdpt = get_next_table(pml4, i_pml4);
-    pd   = get_next_table(pdpt, i_pdpt);
-    pt   = get_next_table(pd, i_pd);
+    pdpt = get_next_table(pml4, i_pml4, flags);
+    pd   = get_next_table(pdpt, i_pdpt, flags);
+    pt   = get_next_table(pd, i_pd, flags);
 
     pt->entries[i_pt].present = flags & PAGE_PRESENT ? 1 : 0;
     pt->entries[i_pt].writable = flags & PAGE_WRITABLE ? 1 : 0;
@@ -53,8 +53,8 @@ int pt_map_page_huge(struct page_table *pml4,
     struct page_table *pdpt;
     struct page_table *pd;
 
-    pdpt = get_next_table(pml4, i_pml4);
-    pd   = get_next_table(pdpt, i_pdpt);
+    pdpt = get_next_table(pml4, i_pml4, flags);
+    pd   = get_next_table(pdpt, i_pdpt, flags);
 
     pd->entries[i_pd].present = flags & PAGE_PRESENT ? 1 : 0;
     pd->entries[i_pd].writable = flags & PAGE_WRITABLE ? 1 : 0;
@@ -74,7 +74,8 @@ int pt_map_page_huge(struct page_table *pml4,
     return 0;
 }
 
-static struct page_table *get_next_table(struct page_table *current, uint16_t index) {
+static struct page_table *get_next_table(struct page_table *current, uint16_t index, uint64_t flags) {
+    // no such path available -> create new table
     if (!current->entries[index].present) {
 
         struct page_table *new_table =
@@ -86,6 +87,7 @@ static struct page_table *get_next_table(struct page_table *current, uint16_t in
 
         current->entries[index].present  = 1;
         current->entries[index].writable = 1;
+        current->entries[index].user = (flags & PAGE_USER) ? 1 : 0;
         current->entries[index].address  = ((uint64_t)new_table) >> 12;
     }
 

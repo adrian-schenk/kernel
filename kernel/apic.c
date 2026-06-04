@@ -83,3 +83,10 @@ void ioapic_write(uint32_t reg, uint32_t value) {
     ioapic[0] = (reg & 0xff);
     ioapic[4] = value;
 }
+
+void apic_map_pages(struct page_table *pml4) {
+    for (int i = 0; i < 32; i++) {
+        pt_map_page(pml4, APIC_VIRT + i * PAGE_SIZE, apic_base + i * PAGE_SIZE, PAGE_PRESENT | PAGE_WRITABLE | PAGE_PWT | PAGE_PCD);
+        pt_map_page(&kernel_pml4, IOAPIC_VIRT + i * PAGE_SIZE, 0xFEC00000 + i * PAGE_SIZE, PAGE_PRESENT | PAGE_WRITABLE | PAGE_PWT | PAGE_PCD);
+    }
+}

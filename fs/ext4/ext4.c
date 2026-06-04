@@ -60,7 +60,7 @@ int ext4_mount(fs_handle_t *handle)
 
   if (sb->s_magic != 0xEF53)
   {
-    printf("Not an ext4 filesystem! Magic: %x\n", sb->s_magic);
+    kprintf("Not an ext4 filesystem! Magic: %x\n", sb->s_magic);
     return -1;
   }
 
@@ -71,20 +71,20 @@ int ext4_mount(fs_handle_t *handle)
     uint32_t stored = *(uint32_t *)((uint8_t *)sb + EXT4_CHECKSUM_OFFSET);
     uint32_t calculated = ext4_superblock_checksum((uint8_t *)sb);
 
-    printf("Superblock checksum: stored %08x, calculated %08x\n", stored, calculated);
+    kprintf("Superblock checksum: stored %08x, calculated %08x\n", stored, calculated);
 
     if (stored != calculated)
     {
-      printf("Superblock checksum mismatch!\n");
+      kprintf("Superblock checksum mismatch!\n");
       return -1;
     }
     else
     {
-      printf("Superblock checksum %08x valid.\n", calculated);
+      kprintf("Superblock checksum %08x valid.\n", calculated);
 
       fs->superblock = *sb;
 
-      printf("Mounted ext4 filesystem with %d inodes and %d blocks!\n", sb->s_inodes_count, sb->s_blocks_count_lo);
+      kprintf("Mounted ext4 filesystem with %d inodes and %d blocks!\n", sb->s_inodes_count, sb->s_blocks_count_lo);
 
       uint64_t block_size = 1024 << sb->s_log_block_size;
       uint64_t blocks_per_group = sb->s_blocks_per_group;
@@ -93,14 +93,14 @@ int ext4_mount(fs_handle_t *handle)
       uint64_t inode_size = sb->s_inode_size;
 
       uint64_t group_size = group_count * sb->s_desc_size;
-      printf("Block size: %d bytes\n", block_size);
-      printf("Blocks per group: %d\n", blocks_per_group);
-      printf("Total blocks: %d\n", total_blocks);
-      printf("Group count: %d\n", group_count);
-      printf("Group descriptor size: %d bytes\n", sb->s_desc_size);
-      printf("Group table size: %d bytes\n", group_size);
-      printf("Inodes per Group: %d\n", sb->s_inodes_per_group);
-      printf("Inode size: %d bytes\n", inode_size);
+      kprintf("Block size: %d bytes\n", block_size);
+      kprintf("Blocks per group: %d\n", blocks_per_group);
+      kprintf("Total blocks: %d\n", total_blocks);
+      kprintf("Group count: %d\n", group_count);
+      kprintf("Group descriptor size: %d bytes\n", sb->s_desc_size);
+      kprintf("Group table size: %d bytes\n", group_size);
+      kprintf("Inodes per Group: %d\n", sb->s_inodes_per_group);
+      kprintf("Inode size: %d bytes\n", inode_size);
     }
   }
   return 0;
@@ -185,7 +185,7 @@ static int ext4_read_file(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64
 
   if (inode_ptr->i_mode & 0x1000 == EXT4_DIRECTORY)
   {
-    printf("Inode %d is a directory, not a file!\n", inode);
+    kprintf("Inode %d is a directory, not a file!\n", inode);
     kfree(buf);
     return -2;
   }
@@ -274,7 +274,7 @@ static int ext4_traverse_dir(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uin
 
   if ((inode->i_mode & 0xF000) != EXT4_DIRECTORY)
   {
-    printf("Inode %d is not a directory!\n", dir_inode);
+    kprintf("Inode %d is not a directory!\n", dir_inode);
     kfree(inode);
     return -1;
   }
@@ -327,7 +327,7 @@ static int ext4_traverse_dir(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uin
 
       if (dir_entry->rec_len == 0)
       {
-        printf("Invalid directory entry with rec_len 0!\n");
+        kprintf("Invalid directory entry with rec_len 0!\n");
         kfree(buf);
         break;
       }

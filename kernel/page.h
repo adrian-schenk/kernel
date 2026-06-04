@@ -58,7 +58,7 @@ int pt_map_page_huge(struct page_table *pml4, uint64_t virt, uint64_t phys, uint
 
 void *pt_alloc_page_phys(int count);
 
-static struct page_table *get_next_table(struct page_table *current, uint16_t index);
+static struct page_table *get_next_table(struct page_table *current, uint16_t index, uint64_t flags);
 
 void pt_clear_page(void* p);
 

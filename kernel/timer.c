@@ -84,11 +84,11 @@ void timer_setup()
   if (seconds > 0)
   {
     apic_speed = (uint64_t)(((10240 << 2) * this_cpu(apic_ticks) / 2) / seconds);
-    printf("Detected APIC Timer speed: %d\n", apic_speed);
+    kprintf("Detected APIC Timer speed: %d\n", apic_speed);
   }
   else
   {
-    printf("APIC Timer could not be initialized\n");
+    kprintf("APIC Timer could not be initialized\n");
   }
 
   this_cpu(ms_counter) = apic_speed / 1000 * 2;

@@ -163,7 +163,7 @@ void enumerate_madt_cores() {
             struct MADTLocalAPIC* lapic = (struct MADTLocalAPIC*)entry;
             int enabled = (lapic->flags & 0x1) != 0;
             int online_capable = (lapic->flags & 0x2) != 0;
-            printf("CPU[%d] ID:%d apic-id:%d\n",
+            kprintf("CPU[%d] ID:%d apic-id:%d\n",
                 cpu_count,
                 lapic->processor_id,
                 lapic->apic_id);
@@ -173,7 +173,7 @@ void enumerate_madt_cores() {
             struct MADTLocalX2APIC* x2apic = (struct MADTLocalX2APIC*)entry;
             int enabled = (x2apic->flags & 0x1) != 0;
             int online_capable = (x2apic->flags & 0x2) != 0;
-            printf("CPU[%d] ID:%d apic-id:%d\n",
+            kprintf("CPU[%d] ID:%d apic-id:%d\n",
                 cpu_count,
                 x2apic->processor_uid,
                 x2apic->x2apic_id
@@ -185,5 +185,5 @@ void enumerate_madt_cores() {
         entry += hdr->length;
     }
 
-    printf("MADT CPU entries found: %d\n", cpu_count);
+    kprintf("MADT CPU entries found: %d\n", cpu_count);
 }

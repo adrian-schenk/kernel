@@ -14,6 +14,9 @@ _task_switch_to:
 
   mov %rdx, (%rdi)
 
+  mov 24(%rdx), %rax # load tasks page table
+  mov %rax, %cr3 # set page table to tasks page table
+
   # Load new task's state
   mov (%rdx), %rsp      # rsp = new_task->rsp
   

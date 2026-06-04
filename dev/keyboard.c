@@ -326,12 +326,12 @@ void keyboard_interrupt_handler(uint64_t interrupt_number, uint64_t error_code) 
     if ((scancode & 0x80) == 0) {
         // Key press
         if (scancode == 0x1C) {
-            printf("\n");
+            kprintf("\n");
             return;
         }
         char c = translate(scancode_set1[scancode], keyboard_state.shift, keyboard_state.ctrl, keyboard_state.altgr);
         if (c) {
-            printf("%c", c);
+            kprintf("%c", c);
         }
     } else {
         // Key release

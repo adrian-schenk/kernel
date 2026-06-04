@@ -23,37 +23,37 @@ const char hex_codes[] = {
     'F'
 };
 
-static void printf_putchar(char c){
+static void kprintf_putchar(char c){
     console_putchar(c);
 }
 
-static void printf_putstr_len(char* str, int len){
+static void kprintf_putstr_len(char* str, int len){
     for(int i = 0; i < len; i++){
         console_putchar(str[i]);
     }
 }
 
-static void printf_putstr(char* str){
+static void kprintf_putstr(char* str){
     console_putstr(str);
 }
 
-static void printf_puthexstr(int i){
+static void kprintf_puthexstr(int i){
     for (int j = 0; j < 8; j++) {
-        printf_putchar(hex_codes[(i >> (28 - j * 4)) & 0xF]);
+        kprintf_putchar(hex_codes[(i >> (28 - j * 4)) & 0xF]);
     }
 }
 
-static void printf_putptr(void *ptr){
+static void kprintf_putptr(void *ptr){
     unsigned long value = (unsigned long)ptr;
     int digits = (int)(sizeof(void *) * 2);
 
-    printf_putstr("0x");
+    kprintf_putstr("0x");
     for (int j = digits - 1; j >= 0; --j) {
-        printf_putchar(hex_codes[(value >> (j * 4)) & 0xF]);
+        kprintf_putchar(hex_codes[(value >> (j * 4)) & 0xF]);
     }
 }
 
-static void printf_putuint(unsigned int i){
+static void kprintf_putuint(unsigned int i){
     int f = 1;
 
     while((i / f) >= 10){
@@ -63,17 +63,17 @@ static void printf_putuint(unsigned int i){
     int r;
     while(f > 0){
         r = i / f;
-        printf_putchar('0' + r);
+        kprintf_putchar('0' + r);
         i = i - (r * f);
         f /= 10;
     }
 }
 
-static void printf_putint(int i){
+static void kprintf_putint(int i){
     int f = 1;
 
     if(i < 0){
-        printf_putchar('-');
+        kprintf_putchar('-');
         i *= -1;
     }
 
@@ -84,17 +84,17 @@ static void printf_putint(int i){
     int r;
     while(f > 0){
         r = i / f;
-        printf_putchar('0' + r);
+        kprintf_putchar('0' + r);
         i = i - (r * f);
         f /= 10;
     }
 }
 
-static void printf_putlong(long long i){
+static void kprintf_putlong(long long i){
     int f = 1;
 
     if(i < 0){
-        printf_putchar('-');
+        kprintf_putchar('-');
         i *= -1;
     }
 
@@ -105,17 +105,17 @@ static void printf_putlong(long long i){
     int r;
     while(f > 0){
         r = i / f;
-        printf_putchar('0' + r);
+        kprintf_putchar('0' + r);
         i = i - (r * f);
         f /= 10;
     }
 }
 
-static void printf_putfloat(float n, int len, int precision){
+static void kprintf_putfloat(float n, int len, int precision){
     int f = 1;
 
     if(n < 0){
-        printf_putchar('-');
+        kprintf_putchar('-');
         n *= -1;
     }
 
@@ -126,24 +126,24 @@ static void printf_putfloat(float n, int len, int precision){
     int r;
     while(f > 0){
         r = n / f;
-        printf_putchar('0' + r);
+        kprintf_putchar('0' + r);
         n = n - (r * f);
         f /= 10;
     }
 
     float frac_part = n - (float)(int)n;
     if(frac_part > 0){
-        printf_putchar('.');
+        kprintf_putchar('.');
         for (int j = 0; j < 2; ++j) {
             frac_part *= 10;
             int digit = (int)frac_part;
-            printf_putchar('0' + digit);
+            kprintf_putchar('0' + digit);
             frac_part -= digit;
         }
     }
 }
 
-int printf(const char* str, ...){
+int kprintf(const char* str, ...){
 
     cli();
     lock(&spinlock);
@@ -164,7 +164,7 @@ int printf(const char* str, ...){
     while(*str){
 
         if(*str != '%'){
-            printf_putchar(*str);
+            kprintf_putchar(*str);
         }
         else{
             top:
@@ -172,15 +172,15 @@ int printf(const char* str, ...){
             switch(*str){
                 case 'd':
                     i = va_arg(args, int);
-                    printf_putint(i);
+                    kprintf_putint(i);
                     break;
                 case 'l':
                     l = va_arg(args, long long);
-                    printf_putlong(l);
+                    kprintf_putlong(l);
                     break;
                 case 'u':
                     u = va_arg(args, unsigned int);
-                    printf_putuint(u);
+                    kprintf_putuint(u);
                     break;
                 case 'f':
                     f = va_arg(args, double);
@@ -199,33 +199,33 @@ int printf(const char* str, ...){
                         }
                     }
 
-                    printf_putfloat(f, -1, -1);
+                    kprintf_putfloat(f, -1, -1);
                     break;
                 case 'x':
                     i = va_arg(args, int);
-                    printf_puthexstr(i);
+                    kprintf_puthexstr(i);
                     break;
                 case 'p':
                     ptr = va_arg(args, void*);
-                    printf_putptr(ptr);
+                    kprintf_putptr(ptr);
                     break;
                 case 's':
                     string = va_arg(args, char*);
                     if (strlen >= 0) {
-                        printf_putstr_len(string, strlen);
+                        kprintf_putstr_len(string, strlen);
                     } else {
                         if (len_vararg) {
                             strlen = va_arg(args, int);
-                            printf_putstr_len(string, strlen);
+                            kprintf_putstr_len(string, strlen);
                         } else 
-                            printf_putstr(string);
+                            kprintf_putstr(string);
                     }
                     strlen = -1;
                     len_vararg = 0;
                     break;
                 case 'c':
                     u = va_arg(args, unsigned int);
-                    printf_putchar(u);
+                    kprintf_putchar(u);
                     break;
                 case '0':
                 case '1':
@@ -249,7 +249,7 @@ int printf(const char* str, ...){
                         goto top;
                     }
                 default:
-                    printf_putchar(*str);
+                    kprintf_putchar(*str);
                     break;
             }
         }

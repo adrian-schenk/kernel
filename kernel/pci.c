@@ -90,13 +90,13 @@ static void pci_print_bar(uint32_t bar, int index)
   {
     base = bar & ~0x3;
     is_io = 1;
-    printf("      BAR%d: I/O at 0x%x\n", index, base);
+    kprintf("      BAR%d: I/O at 0x%x\n", index, base);
   }
   else
   {
     base = bar & ~0xF;
     prefetchable = (bar & 0x8);
-    printf("      BAR%d: %s memory at 0x%x\n",
+    kprintf("      BAR%d: %s memory at 0x%x\n",
            index,
            prefetchable ? "prefetchable" : "non-prefetchable",
            base);
@@ -130,9 +130,9 @@ static void pci_scan_function(uint8_t bus, uint8_t device, uint8_t function)
       .subclass = subclass,
   };
 
-  printf("  Bus %d, device %d, function %d:\n", bus, device, function);
+  kprintf("  Bus %d, device %d, function %d:\n", bus, device, function);
 
-  printf("    %s: PCI device %x:%x (%x, %x)\n",
+  kprintf("    %s: PCI device %x:%x (%x, %x)\n",
          pci_class_name(class_code, subclass),
          vendor,
          device_id,
@@ -146,7 +146,7 @@ static void pci_scan_function(uint8_t bus, uint8_t device, uint8_t function)
     pci_print_bar(bar, i);
   }
 
-  printf("\n");
+  kprintf("\n");
 
   pci_device_count++;
 
@@ -189,7 +189,7 @@ static void pci_find_ahci()
 
         if (class_code == 0x01 && subclass == 0x06)
         {
-          printf("AHCI controller found at bus %d, device %d, function %d\n", bus, device, function);
+          kprintf("AHCI controller found at bus %d, device %d, function %d\n", bus, device, function);
           for (int i = 0; i < 6; i++)
           {
             uint32_t bar = pci_read_32(bus, device, function, 0x10 + i * 4);

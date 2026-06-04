@@ -33,9 +33,9 @@ const char* interrupt_names[] = {
 
 void unknown_interrupt(uint64_t interrupt_number, uint64_t error_code) {
     if(interrupt_number < sizeof(interrupt_names) / sizeof(interrupt_names[0])) {
-        printf("INTR: %s with error code: %d on cpu: %d\n", interrupt_names[interrupt_number], error_code, this_cpu(cpu_id));
+        kprintf("INTR: %s with error code: %d on cpu: %d\n", interrupt_names[interrupt_number], error_code, this_cpu(cpu_id));
     } else {
-        printf("INTR: %d with error code: %d on cpu: %d\n", interrupt_number, error_code, this_cpu(cpu_id));
+        kprintf("INTR: %d with error code: %d on cpu: %d\n", interrupt_number, error_code, this_cpu(cpu_id));
     }
     for(;;);
 }

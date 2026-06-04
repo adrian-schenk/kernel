@@ -9,7 +9,7 @@ void smp_setup() {
     for (int i = 0; i < apic_ids_count; i++) {
         if (i == bs_apicid)
             continue;
-        printf("Starting Core %d of %d\n", i, apic_ids_count - 1);
+        kprintf("Starting Core %d of %d\n", i, apic_ids_count - 1);
         boot_info->ap_startup_done = 0;
         int target_apic_id = apic_ids[i];
 

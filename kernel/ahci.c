@@ -281,19 +281,19 @@ int probe_port(hba_mem_t *abar, int port)
 		int dt = check_type(&abar->ports[i]);
 		if (dt == AHCI_DEV_SATA)
 		{
-			printf("SATA drive found at port %d\n", i);
+			kprintf("SATA drive found at port %d\n", i);
 		}
 		else if (dt == AHCI_DEV_SATAPI)
 		{
-			printf("SATAPI drive found at port %d\n", i);
+			kprintf("SATAPI drive found at port %d\n", i);
 		}
 		else if (dt == AHCI_DEV_SEMB)
 		{
-			printf("SEMB drive found at port %d\n", i);
+			kprintf("SEMB drive found at port %d\n", i);
 		}
 		else if (dt == AHCI_DEV_PM)
 		{
-			printf("PM drive found at port %d\n", i);
+			kprintf("PM drive found at port %d\n", i);
 		}
 		else {
 			return 0;
@@ -360,7 +360,7 @@ void identify_device(hba_port_t *port)
 		}
 		serial_str[20] = '\0';
 		uint64_t size_bytes = sectors * 512;
-		printf("Found Drive: %s (S/N: %s) with size %d!\n", model_str, serial_str, size_bytes);
+		kprintf("Found Drive: %s (S/N: %s) with size %d!\n", model_str, serial_str, size_bytes);
 
 		drives[drive_count].port = port - abar->ports;
 		drives[drive_count].size = size_bytes;
@@ -369,7 +369,7 @@ void identify_device(hba_port_t *port)
 	}
 	else
 	{
-		printf("Identify failed! serr: %x\n", port->serr);
+		kprintf("Identify failed! serr: %x\n", port->serr);
 	}
 
 	stop_cmd(port);

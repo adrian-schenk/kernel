@@ -112,7 +112,7 @@ enable_paging:
 
   	mov $0xC0000080, %ecx
   	rdmsr
-  	or $((1 << 8) | (1 << 11)), %eax
+  	or $(1 << 8), %eax
   	wrmsr
 
   	xor %eax, %eax

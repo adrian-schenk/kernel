@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include "page.h"
 #include "sdt.h"
 
 #define LAPIC_ID_REGISTER 0x20
@@ -32,3 +33,5 @@ uint32_t apic_read(uint16_t reg);
 
 uint32_t ioapic_read(uint32_t reg);
 void ioapic_write(uint32_t reg, uint32_t value);
+
+void apic_map_pages(struct page_table *pml4);
