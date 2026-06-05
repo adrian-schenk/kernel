@@ -406,10 +406,10 @@ blkdev_handle_t* ahci_blkdev_create(int port)
 	if (port < 0 || port >= drive_count)
 		return 1;
 
-	ahci_blkdev_t *dev = kmalloc(sizeof(ahci_blkdev_t));
+	ahci_blkdev_t *dev = kmalloc_early(sizeof(ahci_blkdev_t));
 	dev->port = port;
 
-	blkdev_handle_t *handle = kmalloc(sizeof(blkdev_handle_t));
+	blkdev_handle_t *handle = kmalloc_early(sizeof(blkdev_handle_t));
 	handle->ctx = dev;
 	handle->read = ahci_read;
 	handle->write = ahci_write;

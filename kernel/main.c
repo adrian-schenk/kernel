@@ -79,11 +79,11 @@ void kernel_main()
     uint32_t *memory_map = (uint32_t *)0x7000;
     int memory_map_len = (*((uint32_t *)memory_map++));
 
-    struct gdt_entry *gdt = kmalloc(GDT_ENTRY_SIZE * (GDT_ENTRY * 5 + GDT_TSS_ENTRY * 1));
+    struct gdt_entry *gdt = kmalloc_early(GDT_ENTRY_SIZE * (GDT_ENTRY * 5 + GDT_TSS_ENTRY * 1));
     gdt_setup(gdt, (GDT_ENTRY * 5 + GDT_TSS_ENTRY * 1));
 
     interrupts_setup();
-    struct idt *idt = kmalloc(sizeof(struct idt));
+    struct idt *idt = kmalloc_early(sizeof(struct idt));
     idt_setup(idt);
     apic_setup();
     ioapic_setup();
@@ -142,7 +142,7 @@ void kernel_main()
     enumerate_madt_cores();
 
     if (apic_ids_count > 0)
-        cpu_locals = kmalloc(apic_ids_count * sizeof(struct cpu_local));
+        cpu_locals = kmalloc_early(apic_ids_count * sizeof(struct cpu_local));
 
     struct cpu_local *cpu_local = &cpu_locals[cpu_count++];
 
@@ -158,10 +158,10 @@ void kernel_main()
     pci_init();
     ahci_init();
 
+    sti();
+
     fs_handle_t *ext4 = ext4_handle_create(ahci_blkdev_create(0));
     ext4->mount(ext4);
-
-    sti();
 
     timer_setup();
 
@@ -194,10 +194,10 @@ void ap_kernel_main()
 
     cpu_enable_sse();
 
-    struct gdt_entry *gdt = kmalloc(GDT_ENTRY_SIZE * (GDT_ENTRY * 5 + GDT_TSS_ENTRY * 1));
+    struct gdt_entry *gdt = kmalloc_early(GDT_ENTRY_SIZE * (GDT_ENTRY * 5 + GDT_TSS_ENTRY * 1));
     gdt_setup(gdt, (GDT_ENTRY * 5 + GDT_TSS_ENTRY * 1));
 
-    struct idt *idt = kmalloc(sizeof(struct idt));
+    struct idt *idt = kmalloc_early(sizeof(struct idt));
     idt_setup(idt);
 
     asm volatile (

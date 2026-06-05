@@ -40,8 +40,8 @@ void gdt_setup(struct gdt_entry* gdt, uint16_t gdt_entries) {
     set_gdt_entry(gdt, 3, 0, 0xFFFFFFFF, GDT_A_PRESENT | GDT_A_PRIVL_3 | GDT_A_CODE_DATA | GDT_A_EXECUTABLE | GDT_A_RW, GDT_F_GRANULARITY | GDT_F_64BIT); // 64-bit user code segment
     set_gdt_entry(gdt, 4, 0, 0xFFFFFFFF, GDT_A_PRESENT | GDT_A_PRIVL_3 | GDT_A_CODE_DATA | GDT_A_RW, GDT_F_GRANULARITY); // 64-bit user data segment
 
-    struct tss *gdt_tss = kmalloc(sizeof(struct tss));
-    void *interrupt_stack = kmalloc(2048);
+    struct tss *gdt_tss = kmalloc_early(sizeof(struct tss));
+    void *interrupt_stack = kmalloc_early(2048);
     gdt_tss->rsp0 = (void*)((uint8_t*)interrupt_stack + 2048);
     gdt_tss->io_map_base = sizeof(struct tss);
 

@@ -17,7 +17,8 @@ See the file LICENSE for details.
 #define KMALLOC_STATE_FREE 0xa1a1a1a1
 #define KMALLOC_STATE_USED 0xbfbfbfbf
 
-struct kmalloc_chunk {
+struct kmalloc_chunk
+{
 	int state;
 	int length;
 	struct kmalloc_chunk *next;
@@ -30,12 +31,12 @@ static struct kmalloc_chunk *head = 0;
 
 static inline uintptr_t align_up(uintptr_t x)
 {
-    return (x + ALIGNMENT - 1) & ~(ALIGNMENT - 1);
+	return (x + ALIGNMENT - 1) & ~(ALIGNMENT - 1);
 }
 
 static int align(int n)
 {
-    return (n + ALIGNMENT - 1) & ~(ALIGNMENT - 1);
+	return (n + ALIGNMENT - 1) & ~(ALIGNMENT - 1);
 }
 
 /*
@@ -46,16 +47,16 @@ free and has no next or previous chunks.
 
 void kmalloc_init(char *start, int length)
 {
-    uintptr_t aligned = align_up((uintptr_t)start);
+	uintptr_t aligned = align_up((uintptr_t)start);
 
-    length -= (aligned - (uintptr_t)start);
+	length -= (aligned - (uintptr_t)start);
 
-    head = (struct kmalloc_chunk *)aligned;
+	head = (struct kmalloc_chunk *)aligned;
 
-    head->state = KMALLOC_STATE_FREE;
-    head->length = length;
-    head->next = 0;
-    head->prev = 0;
+	head->state = KMALLOC_STATE_FREE;
+	head->length = length;
+	head->next = 0;
+	head->prev = 0;
 }
 
 /*
@@ -65,51 +66,47 @@ has the desired length, and the next chunk has the remainder.
 
 static void ksplit(struct kmalloc_chunk *c, int length)
 {
-	struct kmalloc_chunk *n = (struct kmalloc_chunk *) ((char *) c + length);
+	struct kmalloc_chunk *n = (struct kmalloc_chunk *)((char *)c + length);
 
 	n->state = KMALLOC_STATE_FREE;
 	n->length = c->length - length;
 	n->prev = c;
 	n->next = c->next;
 
-	if(c->next)
+	if (c->next)
 		c->next->prev = n;
 
 	c->next = n;
 	c->length = length;
 }
 
-/*
-Allocate a chunk of memory of the given length.
-To avoid fragmentation, round up the length to
-a multiple of the chunk size.  Then, search fo
-a chunk of the desired size, and split it if necessary.
-*/
-
-void *kmalloc(int length)
+void *kmalloc_early(int length)
 {
 	lock(&kmalloc_lock);
 	// round up length to a multiple of KUNIT
 	int extra = length % KUNIT;
-	if(extra)
+	if (extra)
 		length += (KUNIT - extra);
 
 	// then add one more unit to accommodate the chunk header
 	length += KUNIT;
 
 	struct kmalloc_chunk *c = head;
-	while(1) {
-		if(!c) {
+	while (1)
+	{
+		if (!c)
+		{
 			kprintf("kmalloc: out of memory!\n");
 			return 0;
 		}
-		if(c->state == KMALLOC_STATE_FREE && c->length >= length)
+		if (c->state == KMALLOC_STATE_FREE && c->length >= length)
 			break;
 		c = c->next;
 	}
 
 	// split the chunk if the remainder is greater than two units
-	if((c->length-length) > 2 * KUNIT) {
+	if ((c->length - length) > 2 * KUNIT)
+	{
 		ksplit(c, length);
 	}
 
@@ -121,26 +118,42 @@ void *kmalloc(int length)
 }
 
 /*
+Allocate a chunk of memory of the given length.
+To avoid fragmentation, round up the length to
+a multiple of the chunk size.  Then, search fo
+a chunk of the desired size, and split it if necessary.
+*/
+
+void *kmalloc(int length)
+{
+	cli();
+	void *ptr = kmalloc_early(length);
+	sti();
+	return ptr;
+}
+
+/*
 Attempt to merge a chunk with its successor,
 if it exists and both are in the free state.
 */
 
 static void kmerge(struct kmalloc_chunk *c)
 {
-	if(!c)
+	if (!c)
 		return;
 
-	if(c->state != KMALLOC_STATE_FREE)
+	if (c->state != KMALLOC_STATE_FREE)
 		return;
 
-	if(c->next && c->next->state == KMALLOC_STATE_FREE) {
+	if (c->next && c->next->state == KMALLOC_STATE_FREE)
+	{
 		c->length += c->next->length;
-		if(c->next->next) {
+		if (c->next->next)
+		{
 			c->next->next->prev = c;
 		}
 		c->next = c->next->next;
 	}
-
 }
 
 /*
@@ -150,10 +163,11 @@ then attempting to merge it with the predecessor and successor.
 
 void kfree(void *ptr)
 {
-	struct kmalloc_chunk *c = (struct kmalloc_chunk *) ptr;
+	struct kmalloc_chunk *c = (struct kmalloc_chunk *)ptr;
 	c--;
 
-	if(c->state != KMALLOC_STATE_USED) {
+	if (c->state != KMALLOC_STATE_USED)
+	{
 		kprintf("invalid kfree(%x)\n", ptr);
 		return;
 	}
@@ -170,12 +184,18 @@ void kmalloc_debug()
 
 	kprintf("state ptr      prev     next     length\n");
 
-	for(c = head; c; c = c->next) {
-		if(c->state == KMALLOC_STATE_FREE) {
+	for (c = head; c; c = c->next)
+	{
+		if (c->state == KMALLOC_STATE_FREE)
+		{
 			kprintf("F");
-		} else if(c->state == KMALLOC_STATE_USED) {
+		}
+		else if (c->state == KMALLOC_STATE_USED)
+		{
 			kprintf("U");
-		} else {
+		}
+		else
+		{
 			kprintf("kmalloc list corrupted at %x!\n", c);
 			return;
 		}
