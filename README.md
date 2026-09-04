@@ -20,6 +20,7 @@ Feel free to play around with it.
 - Basic syscalls
 - Multiple blockdevs: ramfs and ata
 - ext4 file-system (WIP)
+- Single booting from an ATA drive
 
 ## Planned features
 
@@ -32,22 +33,21 @@ Feel free to play around with it.
 - ext4 mkfs
 - RNG
 - NIC/Ethernet Controller + network stack
-- Single booting from ata drive
 
 ## Getting started
 
 It is expected that you already have a C-compiler for the x86 architecture as well as python and make installed.
 For emulating you need Qemu.
 
-Run `make rebuild-disk1` to create the disk image which will contain the file system
+Run `make rebuild-disk1` to create the data image that will hold the ext4 file system
 
-Create a filesystem inside the disk image using `mkfs.ext4 disk1.img`
+Create the file system with `mkfs.ext4 disk1.img`
 
 (Optional): You can mount the image and create some files/folders using `mount -o loop disk1.img /mnt/xy`
 
-Build the kernel using `make`
+Build the kernel and assemble the bootable disk with `make`. This produces a single `disk.img` containing the boot sector, the kernel and the ext4 file system (starting at sector 2048).
 
-Start the qemu using `make run` or `make run-gdb` for debugging sessions
+Start qemu using `make run` or `make run-gdb` for debugging sessions
 
 ##  Technical Info
 
@@ -67,9 +67,9 @@ File system logic and generic structs are located in `fs` and the respective sub
 
 ### Boot protocol
 
-The kernel is designed to be booted directly from a floppy disk. All entry-level code is self-written and no external bootloaders are used.
+The kernel is designed to be booted directly from a single ATA (SATA/AHCI) drive. All entry-level code is self-written and no external bootloaders are used.
 
-The execution starts at address `0x7c00` in real-mode in `boot.S`, which sets up some basic C-runtime as well as loading the remaining kernel from the floppy disk. Note that the `dap` structure to load `kernelcore.S` and the kernel itself are modified by `scripts/build.py`.
+The execution starts at address `0x7c00` in real-mode in `boot.S`, which sets up some basic C-runtime and loads the remaining kernel from the same ATA drive using BIOS extended reads. The boot sector occupies LBA 0, the kernel images follow immediately, and the ext4 file system starts at sector 2048 (`FS_OFFSET_LBA`). Note that the `dap` structure used to load `kernelcore.S`, `trampoline.S` and the kernel itself is patched by `scripts/build.py`.
 This is simply to avoid padding the kernel with the old signatures, that are no longer used.
 After successfully loading the kernel, `boot.S` jumps to `kernelcore.S`.
 

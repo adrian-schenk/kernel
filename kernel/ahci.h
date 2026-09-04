@@ -2,6 +2,16 @@
 #include <stdint.h>
 #include <fs.h>
 
+/* Reserved boot region on the ATA drive. Sectors 0 .. FS_OFFSET_LBA-1 hold
+ * the boot sector and kernel; the ext4 filesystem starts at sector
+ * FS_OFFSET_LBA. This value is exported by the top-level Makefile and must
+ * stay in sync with it.
+ */
+#ifndef FS_OFFSET_LBA
+#define FS_OFFSET_LBA 2048
+#endif
+#define ATA_FS_OFFSET_BYTES ((uint64_t)FS_OFFSET_LBA * 512)
+
 #define	SATA_SIG_ATA	0x00000101	// SATA drive
 #define	SATA_SIG_ATAPI	0xEB140101	// SATAPI drive
 #define	SATA_SIG_SEMB	0xC33C0101	// Enclosure management bridge
@@ -30,10 +40,12 @@
 #define HBA_PxIS_TFES (1 << 30) // Task file error status
 
 typedef struct ahci_blkdev {
-	int port;
+	int port;		// AHCI port index
+	uint64_t offset;	// byte offset of this partition on the drive
+	uint64_t size;		// usable size of this partition in bytes
 } ahci_blkdev_t;
 
-blkdev_handle_t* ahci_blkdev_create(int port);
+blkdev_handle_t* ahci_blkdev_create(int drive_index, uint64_t offset);
 
 typedef struct drive {
 	char port;

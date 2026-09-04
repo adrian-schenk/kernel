@@ -160,8 +160,13 @@ void kernel_main()
 
     sti();
 
-    fs_handle_t *ext4 = ext4_handle_create(ahci_blkdev_create(0));
-    ext4->mount(ext4);
+    blkdev_handle_t *ata = ahci_blkdev_create(0, ATA_FS_OFFSET_BYTES);
+    if (!ata) {
+        kprintf("No ATA drive found for the root filesystem!\n");
+    } else {
+        fs_handle_t *ext4 = ext4_handle_create(ata);
+        ext4->mount(ext4);
+    }
 
     timer_setup();
 

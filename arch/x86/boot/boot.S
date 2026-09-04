@@ -16,6 +16,9 @@ _start:
     mov %ax, %ds
     mov %ax, %es
 
+    # Save the BIOS boot drive (0x80 = first ATA/SATA drive)
+    mov %dl, boot_drive
+
     # Setup stack
     mov $INTERRUPT_STACK_SEGMENT, %ax
     mov %ax, %ss
@@ -32,7 +35,7 @@ load:
     mov $dap_kernelcore, %si
 
     mov $0x42, %ah
-    mov $0x80, %dl
+    mov boot_drive, %dl
 
     int $0x13
     jc disk_error
@@ -40,7 +43,7 @@ load:
     mov $dap_kernel, %si
 
     mov $0x42, %ah
-    mov $0x80, %dl
+    mov boot_drive, %dl
 
     int $0x13
     jc disk_error_kernel
@@ -48,7 +51,7 @@ load:
     mov $dap_trampoline, %si
 
     mov $0x42, %ah
-    mov $0x80, %dl
+    mov boot_drive, %dl
 
     int $0x13
     jc disk_error_trampoline
@@ -106,6 +109,12 @@ err_msg_kernel:
 
 err_msg_trampoline:
     .asciz "Disk read error (Trampoline)!\r\n"
+
+#
+# Boot drive number saved from %dl at entry
+#
+boot_drive:
+    .byte 0x00
 
 #
 # Disk Address Packet

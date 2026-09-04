@@ -1,5 +1,10 @@
 include ../Makefile.config
 
+# FS_OFFSET_LBA is exported by the top-level Makefile; provide a default for
+# direct sub-make invocations.
+FS_OFFSET_LBA ?= 2048
+CFLAGS += -DFS_OFFSET_LBA=$(FS_OFFSET_LBA)
+
 # Define variables
 TARGET = kernel.elf
 OBJ = main.o kmalloc.o graphics.o font.o console.o printf.o string.o gdt.o idt.o page.o tss.o isr.o interrupt.o syscall.o syscall_entry.o apic.o smp.o sdt.o timer.o sleep.o task.o scheduler.o spinlock.o context.o pci.o ahci.o buddy_alloc.o ramfs.o fd.o memory.o

@@ -52,25 +52,26 @@ void ahci_init()
 
 int ahci_read(void *ctx, uint64_t addr, uint64_t size, void *buf)
 {
-	hba_port_t *port = ports[((ahci_blkdev_t *)ctx)->port].port;
+	ahci_blkdev_t *dev = (ahci_blkdev_t *)ctx;
+	int portnum = dev->port;
+	hba_port_t *port = ports[portnum].port;
+	uint64_t abs_addr = addr + dev->offset;
 
-	if (!drives[port - abar->ports].size || size == 0)
+	if (!dev->size || size == 0)
 		return -1;
 
-	if ((addr % 512) || (size % 512))
+	if ((abs_addr % 512) || (size % 512))
 		return -1;
 
-	uint64_t drive_size = drives[port - abar->ports].size;
-
-	if (addr + size > drive_size)
+	if (addr + size > dev->size)
 		return -1;
 
 	stop_cmd(port);
 
-	uint64_t lba = addr / 512;
+	uint64_t lba = abs_addr / 512;
 	uint32_t count = size / 512;
 
-	char slot = ahci_get_cmdslot(port - abar->ports);
+	char slot = ahci_get_cmdslot(portnum);
 	if (slot == -1)
 		return -1;
 
@@ -141,25 +142,26 @@ int ahci_read(void *ctx, uint64_t addr, uint64_t size, void *buf)
 
 int ahci_write(void *ctx, uint64_t addr, uint64_t size, void *buf)
 {
-	hba_port_t *port = ports[((ahci_blkdev_t *)ctx)->port].port;
+	ahci_blkdev_t *dev = (ahci_blkdev_t *)ctx;
+	int portnum = dev->port;
+	hba_port_t *port = ports[portnum].port;
+	uint64_t abs_addr = addr + dev->offset;
 
 	stop_cmd(port);
 
-	if (!drives[port - abar->ports].size || size == 0)
+	if (!dev->size || size == 0)
 		return -1;
 
-	if ((addr % 512) || (size % 512))
+	if ((abs_addr % 512) || (size % 512))
 		return -1;
 
-	uint64_t drive_size = drives[port - abar->ports].size;
-
-	if (addr + size > drive_size)
+	if (addr + size > dev->size)
 		return -1;
 
-	uint64_t lba = addr / 512;
+	uint64_t lba = abs_addr / 512;
 	uint32_t count = size / 512;
 
-	char slot = ahci_get_cmdslot(port - abar->ports);
+	char slot = ahci_get_cmdslot(portnum);
 	if (slot == -1)
 		return -1;
 
@@ -401,13 +403,18 @@ static int check_type(hba_port_t *port)
 	}
 }
 
-blkdev_handle_t* ahci_blkdev_create(int port)
+blkdev_handle_t* ahci_blkdev_create(int drive_index, uint64_t offset)
 {
-	if (port < 0 || port >= drive_count)
-		return 1;
+	if (drive_index < 0 || drive_index >= drive_count)
+		return 0;
+
+	if (offset >= drives[drive_index].size)
+		return 0;
 
 	ahci_blkdev_t *dev = kmalloc_early(sizeof(ahci_blkdev_t));
-	dev->port = port;
+	dev->port = drives[drive_index].port;
+	dev->offset = offset;
+	dev->size = drives[drive_index].size - offset;
 
 	blkdev_handle_t *handle = kmalloc_early(sizeof(blkdev_handle_t));
 	handle->ctx = dev;
