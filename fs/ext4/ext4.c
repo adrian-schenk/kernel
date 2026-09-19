@@ -108,6 +108,8 @@ int ext4_mount(fs_handle_t *handle)
 
 int ext4_unmount(fs_handle_t *handle)
 {
+  kfree(handle->fs_ctx);
+  kfree(handle);
   return 0;
 }
 int ext4_mkfs(fs_handle_t *handle)
@@ -140,8 +142,18 @@ int ext4_open(fs_handle_t *handle, char *path)
   return inode;
 }
 
-int ext4_create(fs_handle_t *handle)
+int ext4_create(fs_handle_t *handle, char *path)
 {
+
+  int path_cutoff = 0;
+  int tmp = 0;
+  while (path[tmp] != '\0')
+  {
+    if (path[tmp] == '/' && path[tmp + 1] != '\0')
+      path_cutoff = tmp;
+    tmp++;
+  }
+
   return 0;
 }
 
