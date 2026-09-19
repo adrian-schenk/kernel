@@ -33,6 +33,8 @@ uint16_t pci_read_16(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset);
 uint8_t pci_read_8(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset);
 uint32_t pci_read_32(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset);
 uint16_t pci_check_vendor(uint8_t bus, uint8_t slot);
+void pci_write_16(uint8_t bus, uint8_t device, uint8_t func, uint8_t offset, uint16_t value);
+void pci_write_32(uint8_t bus, uint8_t device, uint8_t func, uint8_t offset, uint32_t value);
 
 void pci_check_all_buses();
 

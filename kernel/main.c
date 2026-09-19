@@ -24,6 +24,7 @@
 #include "scheduler.h"
 #include "pci.h"
 #include "ahci.h"
+#include "e1000.h"
 #include "buddy_alloc.h"
 #include "ramfs.h"
 #include <blkdev.h>
@@ -156,6 +157,7 @@ void kernel_main()
     keyboard_init();
 
     pci_init();
+    e1000_init();
     ahci_init();
 
     sti();

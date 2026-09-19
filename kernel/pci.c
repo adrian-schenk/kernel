@@ -57,6 +57,35 @@ uint32_t pci_read_32(uint8_t bus, uint8_t device, uint8_t func, uint8_t offset)
   return inl(0xCFC);
 }
 
+void pci_write_16(uint8_t bus, uint8_t device, uint8_t func, uint8_t offset, uint16_t value)
+{
+  uint32_t address =
+      (1u << 31) |
+      ((uint32_t)bus << 16) |
+      ((uint32_t)device << 11) |
+      ((uint32_t)func << 8) |
+      (offset & 0xFC);
+
+  outl(0xCF8, address);
+  int shift = (offset & 2) * 8;
+  uint32_t current = inl(0xCFC);
+  current = (current & ~(0xFFFFu << shift)) | ((uint32_t)value << shift);
+  outl(0xCFC, current);
+}
+
+void pci_write_32(uint8_t bus, uint8_t device, uint8_t func, uint8_t offset, uint32_t value)
+{
+  uint32_t address =
+      (1u << 31) |
+      ((uint32_t)bus << 16) |
+      ((uint32_t)device << 11) |
+      ((uint32_t)func << 8) |
+      (offset & 0xFC);
+
+  outl(0xCF8, address);
+  outl(0xCFC, value);
+}
+
 uint16_t pci_check_vendor(uint8_t bus, uint8_t slot)
 {
   return pci_read_16(bus, slot, 0, 0);
