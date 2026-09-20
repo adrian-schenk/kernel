@@ -1,7 +1,6 @@
 #pragma once
 #include <stdint.h>
 #include <printf.h>
-#include <e1000.h>
 
 static const char hex_digits[] = "0123456789ABCDEF";
 

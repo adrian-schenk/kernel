@@ -1,6 +1,5 @@
 #pragma once
 #include <stdint.h>
-#include <e1000.h>
 
 typedef struct arp_request
 {

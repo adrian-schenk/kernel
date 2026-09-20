@@ -4,30 +4,41 @@
 #include "page.h"
 #include "printf.h"
 #include "sleep.h"
+#include "memory.h"
+#include <network.h>
 #include <ethernet/ethernet.h>
 
-void *base;
-void *rings;
-int rx_descriptors;
-int tx_descriptors;
+static void *base;
+static void *rings;
+static int rx_descriptors;
+static int tx_descriptors;
+static network_device_t *e1000_device;
 
-int cur_rx = 0;
-int cur_tx = 0;
+static int cur_rx = 0;
+static int cur_tx = 0;
 
-void e1000_init(void)
+static int e1000_send(network_device_t *device, const void *data, uint16_t length);
+static int e1000_poll(network_device_t *device);
+
+static const network_device_ops_t e1000_ops = {
+    .send = e1000_send,
+    .poll = e1000_poll,
+};
+
+int e1000_init(network_device_t *device)
 {
     pci_device_t *dev = pci_find_class_subclass(0x02, 0x00);
     if (!dev)
     {
         kprintf("e1000: no network controller found\n");
-        return;
+        return -1;
     }
 
     if (dev->vendor_id != 0x8086 || dev->device_id != 0x100E)
     {
         kprintf("e1000: unsupported network controller %x:%x\n",
                 dev->vendor_id, dev->device_id);
-        return;
+        return -1;
     }
 
     /* Find the memory-mapped BAR (BAR0 on the 82540EM). */
@@ -43,7 +54,7 @@ void e1000_init(void)
     if (!bar)
     {
         kprintf("e1000: no memory-mapped BAR found\n");
-        return;
+        return -1;
     }
 
     /* Enable bus mastering and memory space. */
@@ -85,6 +96,12 @@ void e1000_init(void)
     mac_to_string(mac, mac_str);
     kprintf("e1000: MAC %s\n", mac_str);
 
+    e1000_device = device;
+    e1000_device->ops = &e1000_ops;
+    for (int index = 0; index < 6; index++) {
+        e1000_device->mac[index] = mac[index];
+    }
+
 
     void *phys_page = pt_alloc_page_phys(10);
 
@@ -120,37 +137,48 @@ void e1000_init(void)
     mmio_writel(base + E1000_TCTL, 1 << 1 | 1 << 3 | 1 << 4 | 1 << 5); // Enable transmitter, pad short packets, collision threshold
 
     kprintf("e1000: RX ring at %p, TX ring at %p, buffers at %p\n", rx_ring, tx_ring, buffers);
+    return 0;
 }
 
-void e1000_network_send_tx(void* data, unsigned int len) {
+static int e1000_send(network_device_t *device, const void *data, uint16_t length) {
+    (void)device;
+
+    if (!data || length == 0 || length > 2048) {
+        return -1;
+    }
+
     e1000_transmit_descriptor_t *tx_ring = (e1000_transmit_descriptor_t *)((uint64_t)rings + PAGE_SIZE / 2);
     tx_ring = &tx_ring[cur_tx];
 
+    void *tx_buffer = (void *)(uintptr_t)tx_ring->buffer_addr;
+    memcpy(tx_buffer, data, length);
+
     tx_ring->cmd = 0b00001011; // Set the command bits: EOP, IFCS, RS
-    tx_ring->length = len;
-    tx_ring->buffer_addr = (uint64_t)data;
+    tx_ring->length = length;
+    tx_ring->status = 0;
 
     mmio_writel(base + E1000_TDT, ++cur_tx); // Update the Transmit Descriptor Tail to indicate a new packet is ready
     cur_tx %= tx_descriptors;
-    
+
+    return 0;
 }
 
-void e1000_network_rx_handler() {
+static int e1000_poll(network_device_t *device) {
+    (void)device;
 
-    for (unsigned int i = 0; i < (unsigned int)rx_descriptors; ) {
-        
-        e1000_receive_descriptor_t *rx_ring = (e1000_receive_descriptor_t *)rings;
-        e1000_receive_descriptor_t *desc = &rx_ring[i];
+    int processed = 0;
+    e1000_receive_descriptor_t *rx_ring = (e1000_receive_descriptor_t *)rings;
+
+    for (int index = 0; index < rx_descriptors; index++) {
+        e1000_receive_descriptor_t *desc = &rx_ring[index];
 
         if (desc->status & 0x01) { // Check if the descriptor is done
-
             ethernet_frame_header_t *eth_hdr = (ethernet_frame_header_t *)(uintptr_t)desc->buffer_addr;
-            handle_ethernet_frame(eth_hdr, desc->length);
-
-            // Process the received packet here (desc->buffer_addr points to the data)
+            network_handle_frame(eth_hdr, desc->length);
             desc->status = 0; // Clear the status to indicate it's free
+            processed++;
         }
-
-        i = (i + 1) % rx_descriptors; // Wrap around the ring buffer
     }
+
+    return processed;
 }

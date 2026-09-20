@@ -24,9 +24,9 @@
 #include "scheduler.h"
 #include "pci.h"
 #include "ahci.h"
-#include "e1000.h"
 #include "buddy_alloc.h"
 #include "ramfs.h"
+#include <network.h>
 #include <blkdev.h>
 #include <ext4/ext4.h>
 #include <keyboard.h>
@@ -157,7 +157,7 @@ void kernel_main()
     keyboard_init();
 
     pci_init();
-    e1000_init();
+    network_init();
     ahci_init();
 
     sti();
@@ -180,7 +180,7 @@ void kernel_main()
 
     cli();
     cpu_local->scheduler = scheduler_init();
-    scheduler_add_task(cpu_local->scheduler, task_create_priv(e1000_network_rx_handler, 0x10, 0x8));
+    scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)network_rx_worker, 0x10, 0x8));
     scheduler_add_task(cpu_local->scheduler, task_create((uint64_t)thread_userspace));
     scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)thread_idle, 0x10, 0x8));
     sti();
