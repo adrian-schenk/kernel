@@ -53,5 +53,6 @@ clean:
 	find . -name "*.bin" -type f -delete
 	find . -name "*.elf" -type f -delete
 	$(MAKE) -C kernel clean
+	$(MAKE) -C net clean
 	$(MAKE) -C libs clean
 	$(MAKE) -C arch clean
