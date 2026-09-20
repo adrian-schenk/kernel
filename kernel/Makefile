@@ -17,9 +17,9 @@ FS_DEPS = $(wildcard ../fs/*.c ../fs/*.S ../fs/*.h ../fs/ext4/*.c ../fs/ext4/*.S
 all: $(TARGET)
 
 # Rule to create the target binary
-$(TARGET): $(OBJ) ../arch/x86/boot/kernelcore_64.o ../dev/devs.o ../fs/fs.o
+$(TARGET): $(OBJ) ../arch/x86/boot/kernelcore_64.o ../dev/devs.o ../fs/fs.o ../net/net.o
 	# link the kernel binary
-	$(LD) $(LDFLAGS) -e _start64 -Ttext 0x80000 -o $(TARGET) ../arch/x86/boot/kernelcore_64.o $(OBJ) ../dev/devs.o ../fs/fs.o
+	$(LD) $(LDFLAGS) -e _start64 -Ttext 0x80000 -o $(TARGET) ../arch/x86/boot/kernelcore_64.o $(OBJ) ../dev/devs.o ../fs/fs.o ../net/net.o
 	objcopy -O binary kernel.elf kernel.bin
 
 ../dev/devs.o: $(DEV_DEPS)
@@ -28,8 +28,11 @@ $(TARGET): $(OBJ) ../arch/x86/boot/kernelcore_64.o ../dev/devs.o ../fs/fs.o
 ../fs/fs.o: ../fs/Makefile $(FS_DEPS)
 	$(MAKE) -C ../fs fs.o
 
+../net/net.o: ../net/Makefile $(wildcard ../net/*.c ../net/*.S ../net/*.h)
+	$(MAKE) -C ../net net.o
+
 %.o: %.c
-	${CC} ${CFLAGS}  $< -o $@ -I../dev -I../fs
+	${CC} ${CFLAGS}  $< -o $@ -I../dev -I../fs -I../net
 
 %.o: %.S
 	${CC} ${CFLAGS}  $< -o $@

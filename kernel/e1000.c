@@ -3,21 +3,16 @@
 #include "mmio.h"
 #include "page.h"
 #include "printf.h"
+#include "sleep.h"
+#include <ethernet/ethernet.h>
 
-static const char hex_digits[] = "0123456789ABCDEF";
+void *base;
+void *rings;
+int rx_descriptors;
+int tx_descriptors;
 
-static void mac_to_string(const uint8_t mac[6], char out[18])
-{
-    int j = 0;
-    for (int i = 0; i < 6; i++)
-    {
-        out[j++] = hex_digits[mac[i] >> 4];
-        out[j++] = hex_digits[mac[i] & 0xF];
-        if (i < 5)
-            out[j++] = ':';
-    }
-    out[j] = '\0';
-}
+int cur_rx = 0;
+int cur_tx = 0;
 
 void e1000_init(void)
 {
@@ -65,7 +60,7 @@ void e1000_init(void)
                     PAGE_PRESENT | PAGE_WRITABLE);
     }
 
-    uint64_t base = (uint64_t)bar;
+    base = (void *)(uint64_t)bar;
 
     /* Software reset; the card clears the bit once done. */
     mmio_writel(base + E1000_CTRL, mmio_readl(base + E1000_CTRL) | E1000_CTRL_RST);
@@ -89,4 +84,73 @@ void e1000_init(void)
     char mac_str[18];
     mac_to_string(mac, mac_str);
     kprintf("e1000: MAC %s\n", mac_str);
+
+
+    void *phys_page = pt_alloc_page_phys(10);
+
+    rings = phys_page;
+    void *buffers = (void *)((uint64_t)phys_page + PAGE_SIZE);
+
+    rx_descriptors = 1;
+    e1000_receive_descriptor_t *rx_ring = (e1000_receive_descriptor_t *)rings;
+    rx_ring->buffer_addr = (uint64_t)buffers;
+
+    // Initialize the receive ring.
+    mmio_writel(base + E1000_RDBAL, (uint32_t)(uint64_t)rx_ring);
+    mmio_writel(base + E1000_RDBAH, (uint32_t)((uint64_t)rx_ring >> 32));
+    mmio_writel(base + E1000_RDLEN, sizeof(e1000_receive_descriptor_t) * 1);
+    mmio_writel(base + E1000_RDH, 0);
+    mmio_writel(base + E1000_RDT, rx_descriptors);
+
+    mmio_writel(base + E1000_RCTL, 1 << 1 | 1 << 15 | 3 << 16 | 1 << 25); // Enable receiver, strip CRC, broadcast accept, BSIZE = 4096
+    
+    tx_descriptors = 8;
+    e1000_transmit_descriptor_t *tx_ring = (e1000_transmit_descriptor_t *)((uint64_t)rings + PAGE_SIZE / 2);
+    for (int i = 0; i < tx_descriptors; i++) {
+        tx_ring[i].buffer_addr = (uint64_t)buffers + 2048 * (i + 1);
+    }
+    
+    // Initialize the transmit ring.
+    mmio_writel(base + E1000_TDBAL, (uint32_t)(uint64_t)tx_ring);
+    mmio_writel(base + E1000_TDBAH, (uint32_t)((uint64_t)tx_ring >> 32));
+    mmio_writel(base + E1000_TDLEN, sizeof(e1000_transmit_descriptor_t) * tx_descriptors);
+    mmio_writel(base + E1000_TDH, 0);
+    mmio_writel(base + E1000_TDT, 0);
+    
+    mmio_writel(base + E1000_TCTL, 1 << 1 | 1 << 3 | 1 << 4 | 1 << 5); // Enable transmitter, pad short packets, collision threshold
+
+    kprintf("e1000: RX ring at %p, TX ring at %p, buffers at %p\n", rx_ring, tx_ring, buffers);
+}
+
+void e1000_network_send_tx(void* data, unsigned int len) {
+    e1000_transmit_descriptor_t *tx_ring = (e1000_transmit_descriptor_t *)((uint64_t)rings + PAGE_SIZE / 2);
+    tx_ring = &tx_ring[cur_tx];
+
+    tx_ring->cmd = 0b00001011; // Set the command bits: EOP, IFCS, RS
+    tx_ring->length = len;
+    tx_ring->buffer_addr = (uint64_t)data;
+
+    mmio_writel(base + E1000_TDT, ++cur_tx); // Update the Transmit Descriptor Tail to indicate a new packet is ready
+    cur_tx %= tx_descriptors;
+    
+}
+
+void e1000_network_rx_handler() {
+
+    for (unsigned int i = 0; i < (unsigned int)rx_descriptors; ) {
+        
+        e1000_receive_descriptor_t *rx_ring = (e1000_receive_descriptor_t *)rings;
+        e1000_receive_descriptor_t *desc = &rx_ring[i];
+
+        if (desc->status & 0x01) { // Check if the descriptor is done
+
+            ethernet_frame_header_t *eth_hdr = (ethernet_frame_header_t *)(uintptr_t)desc->buffer_addr;
+            handle_ethernet_frame(eth_hdr, desc->length);
+
+            // Process the received packet here (desc->buffer_addr points to the data)
+            desc->status = 0; // Clear the status to indicate it's free
+        }
+
+        i = (i + 1) % rx_descriptors; // Wrap around the ring buffer
+    }
 }

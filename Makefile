@@ -9,10 +9,10 @@ export FS_OFFSET_LBA
 all: build
 
 run:
-	qemu-system-x86_64 -drive id=disk0,format=raw,file=disk.img,if=none -vga std -monitor stdio -cpu qemu64 -smp 4 -display gtk -device ahci,id=ahci0 -device ide-hd,drive=disk0,bus=ahci0.0 -netdev user,id=net0 -device e1000,netdev=net0
+	qemu-system-x86_64 -drive id=disk0,format=raw,file=disk.img,if=none -vga std -monitor stdio -cpu qemu64 -smp 4 -display gtk -device ahci,id=ahci0 -device ide-hd,drive=disk0,bus=ahci0.0 -netdev tap,id=net0,ifname=tap0,script=no,downscript=no -device e1000,netdev=net0
 
 run-gdb:
-	qemu-system-x86_64 -drive id=disk0,format=raw,file=disk.img,if=none -vga std -monitor stdio -cpu qemu64 -smp 4 -S -s -display gtk -device ahci,id=ahci0 -device ide-hd,drive=disk0,bus=ahci0.0 -netdev user,id=net0 -device e1000,netdev=net0
+	qemu-system-x86_64 -drive id=disk0,format=raw,file=disk.img,if=none -vga std -monitor stdio -cpu qemu64 -smp 4 -S -s -display gtk -device ahci,id=ahci0 -device ide-hd,drive=disk0,bus=ahci0.0 -netdev tap,id=net0,ifname=tap0,script=no,downscript=no -device e1000,netdev=net0
 
 build: build-arch build-kernel rebuild-boot
 	@test -f disk1.img || { echo "disk1.img not found: run 'make rebuild-disk1' then 'mkfs.ext4 disk1.img'"; exit 1; }

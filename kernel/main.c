@@ -180,6 +180,7 @@ void kernel_main()
 
     cli();
     cpu_local->scheduler = scheduler_init();
+    scheduler_add_task(cpu_local->scheduler, task_create_priv(e1000_network_rx_handler, 0x10, 0x8));
     scheduler_add_task(cpu_local->scheduler, task_create((uint64_t)thread_userspace));
     scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)thread_idle, 0x10, 0x8));
     sti();
