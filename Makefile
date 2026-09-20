@@ -49,6 +49,7 @@ build-arch:
 
 clean:
 	find . -name "*.o" -type f -delete
+	find . -name "*.d" -type f -delete
 	find . -name "*.bin" -type f -delete
 	find . -name "*.elf" -type f -delete
 	$(MAKE) -C kernel clean

@@ -2,7 +2,10 @@ include ../Makefile.config
 
 # Define variables
 TARGET = fs.o
-OBJ = ext4/ext4.o
+SRCS = $(patsubst ./%,%,$(shell find . -type f \( -name "*.c" -o -name "*.S" \)))
+OBJ = $(SRCS:.c=.o)
+OBJ := $(OBJ:.S=.o)
+DEPS = $(OBJ:.o=.d)
 
 .PHONY: all clean
 
@@ -12,14 +15,14 @@ all: $(TARGET)
 $(TARGET): $(OBJ)
 	$(AR) rcs $(TARGET) $(OBJ)
 
-ext4/ext4.o: ext4/ext4.c ext4/ext4.h ext4/Makefile ../Makefile.config
-	$(MAKE) -C ext4 ext4.o
-
 %.o: %.c
-	${CC} ${CFLAGS}  $< -o $@
+	${CC} ${CFLAGS} -MMD -MP $< -o $@
 
 %.o: %.S
-	${CC} ${CFLAGS}  $< -o $@
+	${CC} ${CFLAGS} -MMD -MP $< -o $@
+
+-include $(DEPS)
+
 # Clean up generated files
 clean:
-	rm -f $(OBJ) $(TARGET)
+	rm -f $(OBJ) $(DEPS) $(TARGET)
