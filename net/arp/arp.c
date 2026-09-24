@@ -17,12 +17,19 @@ void do_arp_reply(arp_request_t *request) {
     }
 
     arp_reply_t reply = {
-        .hardware_type = request->hardware_type,
-        .protocol_type = request->protocol_type,
+        .hardware_type = 0,
+        .protocol_type = 0,
         .hardware_size = request->hardware_size,
         .protocol_size = request->protocol_size,
-        .opcode = htons(2), // ARP Reply
+        .opcode = htons(0x0002)
     };
+
+    /* request can be 2-byte unaligned (Ethernet header is 14 bytes),
+       so copy 16-bit fields byte-wise to avoid alignment faults. */
+    ((uint8_t *)&reply.hardware_type)[0] = ((const uint8_t *)&request->hardware_type)[0];
+    ((uint8_t *)&reply.hardware_type)[1] = ((const uint8_t *)&request->hardware_type)[1];
+    ((uint8_t *)&reply.protocol_type)[0] = ((const uint8_t *)&request->protocol_type)[0];
+    ((uint8_t *)&reply.protocol_type)[1] = ((const uint8_t *)&request->protocol_type)[1];
     
     for (int index = 0; index < 4; index++) {
         reply.sender_ip[index] = local_ip[index];

@@ -6,6 +6,9 @@ FS_OFFSET_LBA := 2048
 FS_OFFSET_BYTES := $(shell echo $$(( $(FS_OFFSET_LBA) * 512 )))
 export FS_OFFSET_LBA
 
+# sudo ip tuntap add dev tap0 mode tap
+# sudo ip link set tap0 up
+
 all: build
 
 run:
