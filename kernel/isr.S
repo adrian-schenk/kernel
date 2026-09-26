@@ -73,6 +73,12 @@ intr48:
     pushq $48
     jmp syscl_handler
 
+# LAPIC spurious vector (0xFF): iret without touching the APIC (no EOI for
+# spurious interrupts). Also serves as the default gate for all other
+# unhandled vectors instead of an empty IDT entry (which would #GP).
+intr255:
+    iretq
+
 intr_handler:
     PUSH_REGS
     movq 120(%rsp), %rdi
@@ -81,8 +87,11 @@ intr_handler:
     // save %rsp to the current task
     movq %gs:0x08, %rax
     test %rax, %rax
-    
+    jz .skip
+
     mov (%rax), %rax // current task_t*
+    test %rax, %rax
+    jz .skip
     mov %rsp, (%rax)
 .skip:
     call interrupt_handler
@@ -148,3 +157,6 @@ isr_stub_table:
     .quad intr46
     .quad intr47
     .quad intr48
+    .rept 207
+    .quad intr255
+    .endr

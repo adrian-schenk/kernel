@@ -21,6 +21,13 @@ void idt_setup(struct idt* idt) {
 
     idt_set_gate(idt, 48, 0, 0x08, 0, 0xEE); // syscall gate with DPL 3
 
+    // All remaining vectors (including the LAPIC spurious vector 0xFF,
+    // which apic_enable() arms in the SVR) must have a valid gate;
+    // an empty IDT entry would raise #GP when the interrupt fires.
+    for (int i = 49; i < 256; i++) {
+        idt_set_gate(idt, i, 0, 0x08, 0, 0x8E);
+    }
+
     idt_load(idt_init);
 }
 
