@@ -38,8 +38,8 @@ task_t *task_create_priv(uint64_t entry, char ss, char cs)
   for (int i = 0; i < 15; i++)
     *--stack = 0x00; // mock registers
 
-  for (int i = 0; i < (152 / 8); i++)
-    *--stack = 0x00; // mock function call stack from interrupt_handler to task_switch_to (152 bytes)
+  //for (int i = 0; i < (152 / 8); i++)
+  //  *--stack = 0x00; // mock function call stack from interrupt_handler to task_switch_to (152 bytes)
 
   *rsp_location = (uint64_t *)rsp_location + 2;
   task->rsp = (uint64_t)stack;

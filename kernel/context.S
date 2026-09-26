@@ -1,16 +1,14 @@
 #include "util.S"
 
+# Stack Layout of the new Task
+#
+# 
+# +0x80 - RSP
+
 .code64
 
 .global _task_switch_to
 _task_switch_to:
-  # %rdi = &current, %rsi = current task, %rdx = new  task
-  # Save current task's state
-  test %rsi, %rsi
-  jle .skip
-  mov %rsp, (%rsi)      # current->rsp = rsp (only if current != nullptr)
-  
-.skip:
 
   mov %rdx, (%rdi)
 
@@ -21,7 +19,7 @@ _task_switch_to:
   mov (%rdx), %rsp      # rsp = new_task->rsp
   
   # Return to entry point (or next return address on stack)
-  addq $152, %rsp // remove function call stack from interrupt_handler to task_switch_to
+  #addq $152, %rsp // remove function call stack from interrupt_handler to task_switch_to
   POP_REGS
   addq $16, %rsp
   iretq

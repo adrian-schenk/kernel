@@ -11,13 +11,28 @@ scheduler_t *scheduler_init() {
   scheduler->count = 0;
   scheduler->head = 0;
   scheduler->lock = 0;
+  scheduler->started = 0;
   return scheduler;
+}
+
+void scheduler_start(scheduler_t *scheduler) {
+  if (!scheduler) return;
+  cli();
+  lock(&scheduler->lock);
+  scheduler->started = 1;
+  unlock(&scheduler->lock);
+  sti();
 }
 
 static task_t *scheduler_pick_next(scheduler_t *scheduler) {
   if (!scheduler || scheduler->count == 0) return (void*)0;
   cli();
   lock(&scheduler->lock);
+  if (!scheduler->started) {
+    unlock(&scheduler->lock);
+    sti();
+    return (void*)0;
+  }
   task_t *next = scheduler->queue[scheduler->head];
   scheduler->head = (scheduler->head + 1) % scheduler->count;
   unlock(&scheduler->lock);

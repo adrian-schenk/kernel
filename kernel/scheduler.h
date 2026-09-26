@@ -9,9 +9,11 @@ typedef struct scheduler {
   int count;
   int head;
   int lock;
+  unsigned char started;
 } scheduler_t;
 
 scheduler_t *scheduler_init();
+void scheduler_start(scheduler_t *scheduler);
 void scheduler_add_task(scheduler_t *scheduler, task_t *task);
 
 void scheduler_tick(scheduler_t *scheduler);

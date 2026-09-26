@@ -77,6 +77,14 @@ intr_handler:
     PUSH_REGS
     movq 120(%rsp), %rdi
     movq 128(%rsp), %rsi
+
+    // save %rsp to the current task
+    movq %gs:0x08, %rax
+    test %rax, %rax
+    
+    mov (%rax), %rax // current task_t*
+    mov %rsp, (%rax)
+.skip:
     call interrupt_handler
     jmp intr_return
 syscl_handler:

@@ -46,10 +46,11 @@ void ap_kernel_main();
 
 void thread_idle()
 {
+    scheduler_start(this_cpu(scheduler));
     kprintf("thread idle starting\n");
     for (;;)
     {
-        asm __volatile__("hlt");
+        __asm__ volatile("hlt");
     }
 }
 
@@ -180,9 +181,10 @@ void kernel_main()
 
     cli();
     cpu_local->scheduler = scheduler_init();
-    scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)network_rx_worker, 0x10, 0x8));
-    //scheduler_add_task(cpu_local->scheduler, task_create((uint64_t)thread_userspace));
     scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)thread_idle, 0x10, 0x8));
+    //scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)network_rx_worker, 0x10, 0x8));
+    //scheduler_add_task(cpu_local->scheduler, task_create((uint64_t)thread_userspace));
+    task_switch_to(cpu_local->scheduler->queue[0]);
     sti();
 
     for (;;)
@@ -230,8 +232,9 @@ void ap_kernel_main()
     cli();
     cpu_local->scheduler = scheduler_init();
     scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)thread_idle, 0x10, 0x8));
-    scheduler_add_task(cpu_local->scheduler, task_create((uint64_t)thread_userspace));
-    sti();
+    //scheduler_add_task(cpu_local->scheduler, task_create((uint64_t)thread_userspace));
+    //task_switch_to(cpu_local->scheduler->queue[0]);
+    //sti();
 
     for (;;)
     {
