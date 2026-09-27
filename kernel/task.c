@@ -41,7 +41,7 @@ task_t *task_create_priv(uint64_t entry, char ss, char cs)
   //for (int i = 0; i < (152 / 8); i++)
   //  *--stack = 0x00; // mock function call stack from interrupt_handler to task_switch_to (152 bytes)
 
-  *rsp_location = (uint64_t *)rsp_location + 2;
+  *rsp_location = (uint64_t *)rsp_location + 1;
   task->rsp = (uint64_t)stack;
 
   if (cs & 0x3) {

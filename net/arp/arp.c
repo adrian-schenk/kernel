@@ -21,7 +21,7 @@ void do_arp_reply(arp_request_t *request) {
         .protocol_type = 0,
         .hardware_size = request->hardware_size,
         .protocol_size = request->protocol_size,
-        .opcode = htons(0x0002)
+        .opcode = htons(0x2)
     };
 
     /* request can be 2-byte unaligned (Ethernet header is 14 bytes),
