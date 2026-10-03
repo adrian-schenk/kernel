@@ -23,3 +23,8 @@ _task_switch_to:
   POP_REGS
   addq $16, %rsp
   iretq
+
+.global _task_return
+_task_return:
+  mov %rax, %rdi
+  call task_return

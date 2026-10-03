@@ -5,6 +5,8 @@
 #include "interrupt.h"
 #include "spinlock.h"
 
+uint64_t tid = 0;
+
 task_t *task_create(uint64_t entry)
 {
   return task_create_priv(entry, 0x20 | 0x3, 0x18 | 0x3);
@@ -13,21 +15,22 @@ task_t *task_create(uint64_t entry)
 task_t *task_create_priv(uint64_t entry, char ss, char cs)
 {
   task_t *task = (task_t *)kmalloc(sizeof(task_t));
-  task->id = 1;
+  task->id = tid++;
   task->task_pml4 = &kernel_pml4;
 
   if (cs & 0x3)
     task->task_pml4 = pt_alloc_page_phys(1);
 
   task->rsp_base = (uint64_t)kmalloc(4096);
-  uint64_t *rsp_location;
   uint64_t *stack = ((uint8_t *)task->rsp_base) + 4096;
 
-  *--stack = task->id;
-  *--stack = task_return; // fake rbp
-  *--stack = task_return; // return address
+  if (((uint64_t)stack & 0x10) == 0)
+    --stack;
+
+  *--stack = _task_return; // return address
+
   *--stack = ss;          // ss
-  rsp_location = --stack; // save rsp for later
+  *--stack = stack + 1; // save rsp for later
   *--stack = 0x202;       // rflags
   *--stack = cs;          // CS
   *--stack = entry;       // return address for when the task is switched to
@@ -35,13 +38,22 @@ task_t *task_create_priv(uint64_t entry, char ss, char cs)
   --stack;
   --stack; // mock interrupt number and error
 
-  for (int i = 0; i < 15; i++)
-    *--stack = 0x00; // mock registers
+  *--stack = 0x00; // %rax
+  *--stack = 0x00; // %rbx
+  *--stack = 0x00; // %rcx
+  *--stack = 0x00; // %rdx
+  *--stack = 0x00; // %rsi
+  *--stack = 0x00; // %rdi
+  *--stack = 0x00; // %rbp
+  *--stack = 0x00; // %r8
+  *--stack = 0x00; // %r9
+  *--stack = 0x00; // %r10
+  *--stack = 0x00; // %r11
+  *--stack = 0x00; // %r12
+  *--stack = 0x00; // %r13
+  *--stack = 0x00; // %r14
+  *--stack = 0x00; // %r15
 
-  //for (int i = 0; i < (152 / 8); i++)
-  //  *--stack = 0x00; // mock function call stack from interrupt_handler to task_switch_to (152 bytes)
-
-  *rsp_location = (uint64_t *)rsp_location + 1;
   task->rsp = (uint64_t)stack;
 
   if (cs & 0x3) {
@@ -67,24 +79,21 @@ task_t *task_create_priv(uint64_t entry, char ss, char cs)
   return task;
 }
 
-// TODO: allow threads to return values
-static void task_return(char a, char b, char c, char d, char e, char f, long long task_id)
+void task_return(uint64_t a)
 {
-  // kprintf("task returned, exiting cpu %d and %l at %p with %d\n", this_cpu(cpu_id), task_id, &task_id, a);
+  kprintf("task returned, exiting cpu %d and %l at %l\n", this_cpu(cpu_id), this_cpu(scheduler)->current->id, a);
   cli();
-  lock(&this_cpu(scheduler)->lock);
   for (int i = 0; i < SCHEDULER_QUEUE_SIZE; i++)
   {
-    if (this_cpu(scheduler)->queue[i] && this_cpu(scheduler)->queue[i]->id == task_id)
+    if (this_cpu(scheduler)->queue[i] && this_cpu(scheduler)->queue[i]->id == this_cpu(scheduler)->current->id)
     {
       kfree(this_cpu(scheduler)->queue[i]->rsp_base);
       this_cpu(scheduler)->queue[i] = (void *)0;
-      this_cpu(scheduler)->count--;
+      //this_cpu(scheduler)->count--;
       this_cpu(scheduler)->current = (void *)0;
       break;
     }
   }
-  unlock(&this_cpu(scheduler)->lock);
   sti();
   for (;;)
     ;
