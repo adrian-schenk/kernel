@@ -46,12 +46,9 @@ void ap_kernel_main();
 
 void thread_idle()
 {
-    scheduler_start(this_cpu(scheduler));
     kprintf("thread idle starting\n");
     for (;;)
     {
-        sleep(500);
-        kprintf("idle");
         __asm__ volatile("hlt");
     }
 }
@@ -184,7 +181,7 @@ void kernel_main()
 
     timer_setup();
 
-    //smp_setup();
+    smp_setup();
 
     timer_phase = 1;
     sleep(timer_calib_ms);
@@ -196,10 +193,12 @@ void kernel_main()
     scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)thread_test, 0x10, 0x8));
     //scheduler_add_task(cpu_local->scheduler, task_create((uint64_t)thread_userspace));
     scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)network_rx_worker, 0x10, 0x8));
-    cli(); // kmalloc() and scheduler_add_task() re-enabled interrupts via sti();
-           // the first switch must be atomic w.r.t. interrupts
-    task_switch_to(cpu_local->scheduler->queue[0]);
 
+    scheduler_start(cpu_local->scheduler);
+
+    for (;;)
+        asm __volatile__("hlt");
+           
     __builtin_unreachable();
 }
 
@@ -244,9 +243,11 @@ void ap_kernel_main()
     cpu_local->scheduler = scheduler_init();
     scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)thread_idle, 0x10, 0x8));
     scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)thread_test, 0x10, 0x8));
-    cli(); // scheduler_add_task() re-enabled interrupts via sti()
-    //scheduler_add_task(cpu_local->scheduler, task_create((uint64_t)thread_userspace));
-    task_switch_to(cpu_local->scheduler->queue[0]);
+    
+    scheduler_start(cpu_local->scheduler);
+
+    for (;;)
+        asm __volatile__("hlt");
 
     __builtin_unreachable();
 }

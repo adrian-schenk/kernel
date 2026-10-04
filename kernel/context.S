@@ -1,10 +1,5 @@
 #include "util.S"
 
-# Stack Layout of the new Task
-#
-# 
-# +0x80 - RSP
-
 .code64
 
 .global _task_switch_to
