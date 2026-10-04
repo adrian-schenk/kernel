@@ -11,9 +11,11 @@ typedef struct task {
   struct page_table *task_pml4;
 } task_t;
 
+task_t *_task_create(uint64_t entry, char ss, char cs, uint64_t ret);
 task_t *task_create(uint64_t entry);
 task_t *task_create_priv(uint64_t entry, char ss, char cs);
 void task_switch_to(task_t *next);
 extern void _task_switch_to(void* v, task_t *current, task_t *next);
 extern void _task_return();
+extern void _task_return_r3();
 void task_return(uint64_t a);

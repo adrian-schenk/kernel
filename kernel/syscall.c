@@ -1,6 +1,7 @@
 #include "syscall.h"
 #include "printf.h"
 #include "kerror.h"
+#include "task.h"
 #include <stdarg.h>
 
 uint64_t syscall_handler(syscall_t syscall_number, uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e) {
@@ -20,6 +21,10 @@ uint64_t syscall_handler(syscall_t syscall_number, uint64_t a, uint64_t b, uint6
       kprintf((char*)a, (int)b);
       return 69;
       break;
+    case SYSCALL_THREAD_RETURN:
+      task_return(a);
+      return 0;
+      break;
     default:
       return KERROR_INVALID_SYSCALL;
   }
@@ -29,4 +34,8 @@ uint64_t syscall_printf(char* str, ...) {
   va_list args;
   va_start(args, str);
   return syscall(SYSCALL_PRINTF, (uint64_t)str, 0, 0, 0, 0);
+}
+
+uint64_t syscall_thread_return(uint64_t return_value) {
+  return syscall(SYSCALL_THREAD_RETURN, return_value, 0, 0, 0, 0);
 }

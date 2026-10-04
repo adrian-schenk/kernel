@@ -62,10 +62,8 @@ int thread_test() {
 
 void thread_userspace()  {
     int i = syscall_printf("Hello from userspace!\n");
-    return;
     for (;;) {
-        sleep(1000);
-        syscall_printf("us");
+        sleep(500);
     }
 }
 
@@ -181,7 +179,7 @@ void kernel_main()
 
     timer_setup();
 
-    smp_setup();
+    //smp_setup();
 
     timer_phase = 1;
     sleep(timer_calib_ms);
@@ -191,7 +189,7 @@ void kernel_main()
     cpu_local->scheduler = scheduler_init();
     scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)thread_idle, 0x10, 0x8));
     scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)thread_test, 0x10, 0x8));
-    //scheduler_add_task(cpu_local->scheduler, task_create((uint64_t)thread_userspace));
+    scheduler_add_task(cpu_local->scheduler, task_create((uint64_t)thread_userspace));
     scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)network_rx_worker, 0x10, 0x8));
 
     scheduler_start(cpu_local->scheduler);

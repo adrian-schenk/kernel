@@ -23,3 +23,8 @@ _task_switch_to:
 _task_return:
   mov %rax, %rdi
   call task_return
+
+.global _task_return_r3
+_task_return_r3:
+  mov %rax, %rdi
+  call syscall_thread_return

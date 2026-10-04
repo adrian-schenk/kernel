@@ -9,11 +9,15 @@ uint64_t tid = 0;
 
 task_t *task_create(uint64_t entry)
 {
-  return task_create_priv(entry, 0x20 | 0x3, 0x18 | 0x3);
+  return _task_create(entry, 0x20 | 0x3, 0x18 | 0x3, (uint64_t)_task_return_r3);
 }
 
 task_t *task_create_priv(uint64_t entry, char ss, char cs)
 {
+  return _task_create(entry, ss, cs, (uint64_t)_task_return);
+}
+
+task_t *_task_create(uint64_t entry, char ss, char cs, uint64_t ret) {
   task_t *task = (task_t *)kmalloc(sizeof(task_t));
   task->id = tid++;
   task->task_pml4 = &kernel_pml4;
@@ -27,7 +31,7 @@ task_t *task_create_priv(uint64_t entry, char ss, char cs)
   if (((uint64_t)stack & 0x10) == 0)
     --stack;
 
-  *--stack = _task_return; // return address
+  *--stack = ret; // return address
 
   *--stack = ss;          // ss
   *--stack = stack + 1; // save rsp for later
@@ -81,7 +85,7 @@ task_t *task_create_priv(uint64_t entry, char ss, char cs)
 
 void task_return(uint64_t a)
 {
-  kprintf("task returned, exiting cpu %d and %l at %l\n", this_cpu(cpu_id), this_cpu(scheduler)->current->id, a);
+  //kprintf("task returned, exiting cpu %d and %l with %l\n", this_cpu(cpu_id), this_cpu(scheduler)->current->id, a);
   cli();
   for (int i = 0; i < SCHEDULER_QUEUE_SIZE; i++)
   {

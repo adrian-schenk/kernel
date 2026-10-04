@@ -36,11 +36,7 @@ static task_t *scheduler_pick_next(scheduler_t *scheduler) {
   task_t *next = scheduler->queue[scheduler->head];
   scheduler->head = (scheduler->head + 1) % scheduler->count;
   unlock(&scheduler->lock);
-  // NOTE: do not sti() here. scheduler_tick() runs inside the timer
-  // interrupt handler; re-enabling IF before the context switch allows a
-  // nested timer interrupt, which overwrites scheduler->current->rsp with
-  // the nested frame. The outer switch would then consume the same frame
-  // twice and iretq into garbage.
+
   return next;
 }
 
