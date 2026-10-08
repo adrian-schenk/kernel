@@ -144,6 +144,7 @@ static int e1000_send(network_device_t *device, const void *data, uint16_t lengt
     (void)device;
 
     if (!data || length == 0 || length > 2048) {
+        kprintf("e1000: invalid packet length %u\n", length);
         return -1;
     }
 
@@ -174,7 +175,7 @@ static int e1000_poll(network_device_t *device) {
 
         if (desc->status & 0x01) { // Check if the descriptor is done
             ethernet_frame_header_t *eth_hdr = (ethernet_frame_header_t *)(uintptr_t)desc->buffer_addr;
-            network_handle_frame(eth_hdr, desc->length);
+            network_handle_frame(device, eth_hdr, desc->length);
             desc->status = 0; // Clear the status to indicate it's free
             processed++;
         }

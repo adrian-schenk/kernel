@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <network.h>
 
 typedef struct arp_request
 {
@@ -27,5 +28,5 @@ typedef struct arp_reply
     uint8_t target_ip[4];
 } __attribute__((packed)) arp_reply_t;
 
-void handle_arp_request(arp_request_t *request);
-void do_arp_reply(arp_request_t *request);
+void handle_arp_request(NETWORKING_ARGS, arp_request_t *request);
+void do_arp_reply(NETWORKING_ARGS, arp_request_t *request);

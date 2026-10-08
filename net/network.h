@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#define NETWORKING_ARGS network_device_t *dev
+
 typedef struct network_device network_device_t;
 
 typedef int (*network_send_fn)(network_device_t *device, const void *data, uint16_t length);
@@ -25,7 +27,7 @@ int network_register_device(network_device_t *device);
 network_device_t *network_primary_device(void);
 const uint8_t *network_primary_mac(void);
 const uint8_t *network_primary_ipv4(void);
-int network_send(const void *data, uint16_t length);
-int network_poll(void);
-void network_handle_frame(void *frame, uint16_t length);
+int network_send(NETWORKING_ARGS, const void *data, uint16_t length);
+int network_poll();
+void network_handle_frame(NETWORKING_ARGS, void *frame, uint16_t length);
 void network_rx_worker(void);

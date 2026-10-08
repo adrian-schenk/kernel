@@ -50,13 +50,13 @@ const uint8_t *network_primary_ipv4(void)
   return primary_network_device->ipv4;
 }
 
-int network_send(const void *data, uint16_t length)
+int network_send(network_device_t *dev, const void *data, uint16_t length)
 {
-  if (!primary_network_device) {
+  if (!dev) {
     return -1;
   }
 
-  return primary_network_device->ops->send(primary_network_device, data, length);
+  return dev->ops->send(dev, data, length);
 }
 
 int network_poll(void)
@@ -70,9 +70,9 @@ int network_poll(void)
   return processed;
 }
 
-void network_handle_frame(void *frame, uint16_t length)
+void network_handle_frame(network_device_t *device, void *frame, uint16_t length)
 {
-  handle_ethernet_frame((ethernet_frame_header_t *)frame, length);
+  handle_ethernet_frame(device, (ethernet_frame_header_t *)frame, length);
 }
 
 void network_rx_worker(void)

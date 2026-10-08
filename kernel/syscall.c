@@ -19,7 +19,7 @@ uint64_t syscall_handler(syscall_t syscall_number, uint64_t a, uint64_t b, uint6
       break;
     case SYSCALL_PRINTF:
       kprintf((char*)a, (int)b);
-      return 69;
+      return 0;
       break;
     case SYSCALL_THREAD_RETURN:
       task_return(a);

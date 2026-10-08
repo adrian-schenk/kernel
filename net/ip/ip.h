@@ -1,5 +1,7 @@
 #pragma once
 #include <stdint.h>
+#include <network.h>
+#include <icmp/icmp.h>
 
 typedef struct {
     uint8_t  version_ihl;
@@ -15,4 +17,4 @@ typedef struct {
     uint8_t  options[];
 } ip_header_t;
 
-void ip4_handle_packet(const void *packet, uint16_t length);
+void ip4_handle_packet(NETWORKING_ARGS, const void *packet, uint16_t length);

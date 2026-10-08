@@ -4,11 +4,11 @@
 #include <ethernet/ethernet.h>
 #include <endian.h>
 
-void handle_arp_request(arp_request_t *request) {
-    do_arp_reply(request);
+void handle_arp_request(NETWORKING_ARGS, arp_request_t *request) {
+    do_arp_reply(dev, request);
 }
 
-void do_arp_reply(arp_request_t *request) {
+void do_arp_reply(NETWORKING_ARGS, arp_request_t *request) {
     const uint8_t *local_mac = network_primary_mac();
     const uint8_t *local_ip = network_primary_ipv4();
 
@@ -51,17 +51,5 @@ void do_arp_reply(arp_request_t *request) {
     reply.target_mac[4] = request->sender_mac[4];
     reply.target_mac[5] = request->sender_mac[5];
 
-    struct {
-        ethernet_frame_header_t frame;
-        arp_reply_t reply;
-    } packet;
-
-    for (int index = 0; index < 6; index++) {
-        packet.frame.destination_mac[index] = reply.target_mac[index];
-        packet.frame.source_mac[index] = reply.sender_mac[index];
-    }
-    packet.frame.ethertype = htons(0x0806); // ARP Ethertype in little-endian
-    packet.reply = reply;
-
-    network_send(&packet, sizeof(packet));
+    ethernet_send(dev, &reply.target_mac, 0x0806, &reply, sizeof(reply));
 }

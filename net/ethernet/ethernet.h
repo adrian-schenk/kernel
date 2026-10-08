@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <network.h>
 #include <printf.h>
 
 static const char hex_digits[] = "0123456789ABCDEF";
@@ -11,7 +12,7 @@ typedef struct ethernet_frame_header
     uint16_t ethertype;
 } __attribute__((packed)) ethernet_frame_header_t;
 
-void handle_ethernet_frame(ethernet_frame_header_t *frame, uint16_t length);
+void handle_ethernet_frame(network_device_t *device, ethernet_frame_header_t *frame, uint16_t length);
 
 
 static void mac_to_string(const uint8_t mac[6], char out[18])
@@ -26,3 +27,5 @@ static void mac_to_string(const uint8_t mac[6], char out[18])
     }
     out[j] = '\0';
 }
+
+void ethernet_send(network_device_t *device, char* to, uint16_t ethertype, const void *data, uint16_t length);

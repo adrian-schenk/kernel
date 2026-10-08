@@ -1,8 +1,11 @@
 #include <ethernet/ethernet.h>
 #include <arp/arp.h>
 #include <ip/ip.h>
+#include <endian.h>
+#include <kmalloc.h>
+#include <memory.h>
 
-void handle_ethernet_frame(ethernet_frame_header_t *frame, uint16_t length) {
+void handle_ethernet_frame(NETWORKING_ARGS, ethernet_frame_header_t *frame, uint16_t length) {
     char src_mac[18], dst_mac[18];
     uint16_t ethertype = (frame->ethertype << 8) | (frame->ethertype >> 8); // Convert to host byte order
 
@@ -12,13 +15,13 @@ void handle_ethernet_frame(ethernet_frame_header_t *frame, uint16_t length) {
             mac_to_string(frame->destination_mac, dst_mac);
             mac_to_string(frame->destination_mac, dst_mac);
             kprintf("Received IPv4 packet: Src MAC: %s, Dst MAC: %s, Length: %u\n", src_mac, dst_mac, length);
-            ip4_handle_packet((const void *)((uint8_t *)frame + sizeof(ethernet_frame_header_t)), length - sizeof(ethernet_frame_header_t));
+            ip4_handle_packet(dev, (const void *)((uint8_t *)frame + sizeof(ethernet_frame_header_t)), length - sizeof(ethernet_frame_header_t));
             break;
         case 0x0806: // ARP
             mac_to_string(frame->source_mac, src_mac);
             mac_to_string(frame->destination_mac, dst_mac);
             kprintf("Received ARP packet: Src MAC: %s, Dst MAC: %s, Length: %u\n", src_mac, dst_mac, length);
-            handle_arp_request((arp_request_t *)((uint8_t *)frame + sizeof(ethernet_frame_header_t)));
+            handle_arp_request(dev, (arp_request_t *)((uint8_t *)frame + sizeof(ethernet_frame_header_t)));
             break;
         default:
             mac_to_string(frame->source_mac, src_mac);
@@ -26,4 +29,30 @@ void handle_ethernet_frame(ethernet_frame_header_t *frame, uint16_t length) {
             kprintf("Received unknown Ethernet frame: Ethertype: 0x%04X, Src MAC: %s, Dst MAC: %s, Length: %u\n", ethertype, src_mac, dst_mac, length);
             break;
     }
+}
+
+void ethernet_send(NETWORKING_ARGS, char* to, uint16_t ethertype, const void *data, uint16_t length) {
+    if (!dev || !to || !data || length == 0) {
+        kprintf("ethernet_send: Invalid parameters\n");
+        return;
+    }
+
+    void *buf = kmalloc(sizeof(ethernet_frame_header_t) + length);
+    if (!buf) {
+        kprintf("ethernet_send: Failed to allocate buffer\n");
+        return;
+    }
+
+    ethernet_frame_header_t *frame = buf;
+    for (int i = 0; i < 6; i++) {
+        frame->source_mac[i] = dev->mac[i];
+        frame->destination_mac[i] = to[i];
+    }
+    frame->ethertype = htons(ethertype);
+
+    memcpy((uint8_t *)buf + sizeof(ethernet_frame_header_t), data, length);
+
+    dev->ops->send(dev, buf, sizeof(ethernet_frame_header_t) + length);
+
+    kfree(buf);
 }
