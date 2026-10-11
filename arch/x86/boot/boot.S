@@ -1,3 +1,4 @@
+
 #include <memlayout.h>
 
 .global _start
@@ -16,7 +17,7 @@ _start:
     mov %ax, %ds
     mov %ax, %es
 
-    # Save the BIOS boot drive (0x80 = first ATA/SATA drive)
+    # Save BIOS boot drive
     mov %dl, boot_drive
 
     # Setup stack
@@ -29,34 +30,64 @@ _start:
     call print_string
 
 load:
-    # DS must point to dap
+    # DS must point to the DAPs
     mov %cs, %ax
     mov %ax, %ds
-    mov $dap_kernelcore, %si
 
+    # Load kernelcore
+    mov $dap_kernelcore, %si
     mov $0x42, %ah
     mov boot_drive, %dl
-
     int $0x13
     jc disk_error
 
-    mov $dap_kernel, %si
+    # Load kernel in chunks
+    # BP = total sectors remaining
+    movw dap_kernel+2, %bp
 
-    mov $0x42, %ah
-    mov boot_drive, %dl
+kernel_load_loop:
+    testw %bp, %bp
+    jz kernel_load_done
 
+    # AX = min(remaining sectors, 32)
+    movw %bp, %ax
+    cmpw $32, %ax
+    jbe kernel_chunk_ready
+    movw $32, %ax
+
+kernel_chunk_ready:
+    # Set DAP sector count for this read
+    movw %ax, dap_kernel+2
+    pushw %ax
+
+    # BIOS extended read
+    movw $dap_kernel, %si
+    movb $0x42, %ah
+    movb boot_drive, %dl
     int $0x13
     jc disk_error_kernel
 
-    mov $dap_trampoline, %si
+    # Restore chunk size
+    popw %ax
 
-    mov $0x42, %ah
-    mov boot_drive, %dl
+    # Remaining sectors -= chunk size
+    subw %ax, %bp
 
-    int $0x13
-    jc disk_error_trampoline
+    # Destination segment += chunk * 32 paragraphs
+    movw %ax, %bx
+    shlw $5, %bx
+    addw %bx, dap_kernel+6
 
-    ljmp $PM_SEGMENT, $PM_OFFSET # jump to kernelcore at 0x10000 physical
+    # Starting LBA (low 32 bits) += chunk size
+    movzwl %ax, %eax
+    addl %eax, dap_kernel+8
+    adcl $0, dap_kernel+12
+
+    jmp kernel_load_loop
+
+kernel_load_done:
+    # Kernel loaded at physical 0x80000
+    ljmp $PM_SEGMENT, $PM_OFFSET
 
 success:
     mov $ok_msg, %si
@@ -111,51 +142,43 @@ err_msg_trampoline:
     .asciz "Disk read error (Trampoline)!\r\n"
 
 #
-# Boot drive number saved from %dl at entry
+# Boot drive number saved from DL at entry
 #
 boot_drive:
     .byte 0x00
 
 #
-# Disk Address Packet
-# Loads kernel to physical 0x80000
+# Disk Address Packets
 #
+
 dap_start:
     .long 0x12349876
+
 dap_kernelcore:
-    .byte 0x10          # size (16 bytes)
-    .byte 0x00          # reserved
-
-    .word 0x0000        # sectors to read (will be changed by scripts/build.py)
-
-    .word 0x1000        # offset
-    .word 0x0000        # segment → 0x1000 physical
-
-    .long 0x00000000    # LBA low (will be changed by scripts/build.py)
+    .byte 0x10
+    .byte 0x00
+    .word 0x0000        # Sectors patched by build.py
+    .word 0x1000        # Offset
+    .word 0x0000        # Segment: physical 0x10000
+    .long 0x00000000    # LBA low
     .long 0x00000000    # LBA high
 
 dap_trampoline:
-    .byte 0x10          # size (16 bytes)
-    .byte 0x00          # reserved
-
-    .word 0x0000        # sectors to read (will be changed by scripts/build.py)
-
-    .word 0x0000        # offset
-    .word 0x1000        # segment → 0x10000 physical
-
-    .long 0x00000000    # LBA low (will be changed by scripts/build.py)
+    .byte 0x10
+    .byte 0x00
+    .word 0x0000        # Sectors patched by build.py
+    .word 0x0000        # Offset
+    .word 0x1000        # Segment: physical 0x10000
+    .long 0x00000000    # LBA low
     .long 0x00000000    # LBA high
 
 dap_kernel:
-    .byte 0x10          # size (16 bytes)
-    .byte 0x00          # reserved
-
-    .word 0x0000        # sectors to read (will be changed by scripts/build.py)
-
-    .word 0x0000        # offset
-    .word 0x8000        # segment → 0x80000 physical
-
-    .long 0x00000000    # LBA low (will be changed by scripts/build.py)
+    .byte 0x10
+    .byte 0x00
+    .word 0x0000        # Total sectors patched by build.py
+    .word 0x0000        # Offset
+    .word 0x8000        # Segment: physical 0x80000
+    .long 0x00000000    # LBA low
     .long 0x00000000    # LBA high
 
 .org 510
