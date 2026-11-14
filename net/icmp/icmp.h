@@ -1,6 +1,10 @@
 #pragma once
+
+#include <stdint.h>
 #include <network.h>
-#include <ip/ip.h>
+
+#define ICMP_TYPE_ECHO_REPLY   0
+#define ICMP_TYPE_ECHO_REQUEST 8
 
 typedef struct {
     uint8_t type;
@@ -9,4 +13,6 @@ typedef struct {
     uint32_t rest_of_header;
 } icmp_header_t;
 
-void handle_icmp_packet(NETWORKING_ARGS, const void *icmp_packet, uint16_t length);
+void icmp_handle_packet(net_interface_t *iface, uint32_t source_ip,
+                        uint32_t dest_ip, const void *icmp_packet,
+                        uint16_t length);

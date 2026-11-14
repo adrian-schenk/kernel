@@ -1,32 +1,45 @@
 #include "icmp.h"
-#include <printf.h>
+#include <endian.h>
 #include <ip/ip.h>
-#include <ethernet/ethernet.h>
+#include <kmalloc.h>
+#include <memory.h>
+#include <printf.h>
 
+void icmp_handle_packet(net_interface_t *iface, uint32_t source_ip,
+                        uint32_t dest_ip, const void *icmp_packet,
+                        uint16_t length)
+{
+    (void)dest_ip;
 
-void handle_icmp_packet(NETWORKING_ARGS, const void *icmp_packet, uint16_t length) {
-    if (length < sizeof(icmp_header_t)) {
+    if (!iface || !icmp_packet || length < sizeof(icmp_header_t)) {
         return;
     }
 
-    const icmp_header_t *header = (const icmp_header_t *)icmp_packet;
+    const icmp_header_t *header = icmp_packet;
 
-    kprintf("Received ICMP packet: type=%u, code=%u\n", header->type, header->code);
+    kprintf("Received ICMP packet: type=%u, code=%u\n",
+            header->type, header->code);
 
     switch (header->type) {
-        case 0x08:
-            kprintf("ICMP Echo Request received.\n");
-            icmp_header_t reply = {
-                .type = 0x00,
-                .code = 0x00,
-                .checksum = 0,
-                .rest_of_header = 0,
-            };
+        case ICMP_TYPE_ECHO_REQUEST: {
+            uint8_t *reply = kmalloc(length);
+            if (!reply) {
+                return;
+            }
 
+            memcpy(reply, icmp_packet, length);
+
+            icmp_header_t *reply_header = (icmp_header_t *)reply;
+            reply_header->type = ICMP_TYPE_ECHO_REPLY;
+            reply_header->code = 0;
+            reply_header->checksum = 0;
+            reply_header->checksum = htons(net_checksum16(reply, length));
+
+            ip4_send(iface, source_ip, IP4_PROTOCOL_ICMP, reply, length);
+            kfree(reply);
             break;
-        case 0x00:
-            kprintf("ICMP Echo Reply received.\n");
-            // Handle echo reply
+        }
+        case ICMP_TYPE_ECHO_REPLY:
             break;
         default:
             kprintf("Unhandled ICMP type: %u\n", header->type);

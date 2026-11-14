@@ -1,9 +1,7 @@
 #pragma once
+
 #include <stdint.h>
 #include <network.h>
-#include <printf.h>
-
-static const char hex_digits[] = "0123456789ABCDEF";
 
 typedef struct ethernet_frame_header
 {
@@ -12,20 +10,11 @@ typedef struct ethernet_frame_header
     uint16_t ethertype;
 } __attribute__((packed)) ethernet_frame_header_t;
 
-void handle_ethernet_frame(network_device_t *device, ethernet_frame_header_t *frame, uint16_t length);
+/* Ethernet L2 implementation, registered with the core at boot. */
+extern const net_link_ops_t net_ethernet_link_ops;
 
-
-static void mac_to_string(const uint8_t mac[6], char out[18])
-{
-    int j = 0;
-    for (int i = 0; i < 6; i++)
-    {
-        out[j++] = hex_digits[mac[i] >> 4];
-        out[j++] = hex_digits[mac[i] & 0xF];
-        if (i < 5)
-            out[j++] = ':';
-    }
-    out[j] = '\0';
-}
-
-void ethernet_send(network_device_t *device, char* to, uint16_t ethertype, const void *data, uint16_t length);
+int net_ethernet_send(net_interface_t *iface, const uint8_t *dst,
+                      uint16_t protocol, const void *payload,
+                      uint16_t length);
+void net_ethernet_receive(net_interface_t *iface, const void *frame,
+                          uint16_t length);

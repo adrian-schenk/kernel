@@ -6,7 +6,6 @@
 #include "sleep.h"
 #include "memory.h"
 #include <network.h>
-#include <ethernet/ethernet.h>
 
 static void *base;
 static void *rings;
@@ -93,13 +92,14 @@ int e1000_init(network_device_t *device)
     };
 
     char mac_str[18];
-    mac_to_string(mac, mac_str);
+    net_mac_to_string(mac, mac_str);
     kprintf("e1000: MAC %s\n", mac_str);
 
     e1000_device = device;
     e1000_device->ops = &e1000_ops;
-    for (int index = 0; index < 6; index++) {
-        e1000_device->mac[index] = mac[index];
+    e1000_device->hwaddr_len = NET_HWADDR_LEN_ETHERNET;
+    for (int index = 0; index < NET_HWADDR_LEN_ETHERNET; index++) {
+        e1000_device->hwaddr[index] = mac[index];
     }
 
 
@@ -174,8 +174,8 @@ static int e1000_poll(network_device_t *device) {
         e1000_receive_descriptor_t *desc = &rx_ring[index];
 
         if (desc->status & 0x01) { // Check if the descriptor is done
-            ethernet_frame_header_t *eth_hdr = (ethernet_frame_header_t *)(uintptr_t)desc->buffer_addr;
-            network_handle_frame(device, eth_hdr, desc->length);
+            network_handle_frame(device, (void *)(uintptr_t)desc->buffer_addr,
+                                 desc->length);
             desc->status = 0; // Clear the status to indicate it's free
             processed++;
         }

@@ -1,58 +1,75 @@
 #include <ethernet/ethernet.h>
-#include <arp/arp.h>
-#include <ip/ip.h>
 #include <endian.h>
 #include <kmalloc.h>
 #include <memory.h>
+#include <printf.h>
 
-void handle_ethernet_frame(NETWORKING_ARGS, ethernet_frame_header_t *frame, uint16_t length) {
+void net_ethernet_receive(net_interface_t *iface, const void *frame,
+                          uint16_t length)
+{
+    if (!iface || !frame || length < sizeof(ethernet_frame_header_t)) {
+        return;
+    }
+
+    const ethernet_frame_header_t *header = frame;
+    uint16_t ethertype = ntohs(header->ethertype);
+    const void *payload = (const uint8_t *)frame + sizeof(*header);
+    uint16_t payload_length = length - sizeof(*header);
+
     char src_mac[18], dst_mac[18];
-    uint16_t ethertype = (frame->ethertype << 8) | (frame->ethertype >> 8); // Convert to host byte order
+    net_mac_to_string(header->source_mac, src_mac);
+    net_mac_to_string(header->destination_mac, dst_mac);
 
     switch (ethertype) {
-        case 0x0800: // IPv4
-            mac_to_string(frame->source_mac, src_mac);
-            mac_to_string(frame->destination_mac, dst_mac);
-            mac_to_string(frame->destination_mac, dst_mac);
-            kprintf("Received IPv4 packet: Src MAC: %s, Dst MAC: %s, Length: %u\n", src_mac, dst_mac, length);
-            ip4_handle_packet(dev, (const void *)((uint8_t *)frame + sizeof(ethernet_frame_header_t)), length - sizeof(ethernet_frame_header_t));
+        case NET_PROTO_IPV4:
+            kprintf("Received IPv4 packet: Src MAC: %s, Dst MAC: %s, Length: %u\n",
+                    src_mac, dst_mac, length);
             break;
-        case 0x0806: // ARP
-            mac_to_string(frame->source_mac, src_mac);
-            mac_to_string(frame->destination_mac, dst_mac);
-            kprintf("Received ARP packet: Src MAC: %s, Dst MAC: %s, Length: %u\n", src_mac, dst_mac, length);
-            handle_arp_request(dev, (arp_request_t *)((uint8_t *)frame + sizeof(ethernet_frame_header_t)));
+        case NET_PROTO_ARP:
+            kprintf("Received ARP packet: Src MAC: %s, Dst MAC: %s, Length: %u\n",
+                    src_mac, dst_mac, length);
             break;
         default:
-            mac_to_string(frame->source_mac, src_mac);
-            mac_to_string(frame->destination_mac, dst_mac);
-            kprintf("Received unknown Ethernet frame: Ethertype: 0x%04X, Src MAC: %s, Dst MAC: %s, Length: %u\n", ethertype, src_mac, dst_mac, length);
+            kprintf("Received unknown Ethernet frame: Ethertype: 0x%04X, "
+                    "Src MAC: %s, Dst MAC: %s, Length: %u\n",
+                    ethertype, src_mac, dst_mac, length);
             break;
     }
+
+    net_link_deliver(iface, ethertype, payload, payload_length);
 }
 
-void ethernet_send(NETWORKING_ARGS, char* to, uint16_t ethertype, const void *data, uint16_t length) {
-    if (!dev || !to || !data || length == 0) {
-        kprintf("ethernet_send: Invalid parameters\n");
-        return;
+int net_ethernet_send(net_interface_t *iface, const uint8_t *dst,
+                      uint16_t protocol, const void *payload,
+                      uint16_t length)
+{
+    if (!iface || !iface->device || !iface->device->ops ||
+        !iface->device->ops->send || !dst || !payload ||
+        iface->hwaddr_len != NET_HWADDR_LEN_ETHERNET) {
+        return -1;
     }
 
-    void *buf = kmalloc(sizeof(ethernet_frame_header_t) + length);
-    if (!buf) {
-        kprintf("ethernet_send: Failed to allocate buffer\n");
-        return;
+    uint16_t frame_length = sizeof(ethernet_frame_header_t) + length;
+    void *buffer = kmalloc(frame_length);
+    if (!buffer) {
+        return -1;
     }
 
-    ethernet_frame_header_t *frame = buf;
-    for (int i = 0; i < 6; i++) {
-        frame->source_mac[i] = dev->mac[i];
-        frame->destination_mac[i] = to[i];
-    }
-    frame->ethertype = htons(ethertype);
+    ethernet_frame_header_t *header = buffer;
+    memcpy(header->source_mac, iface->hwaddr, NET_HWADDR_LEN_ETHERNET);
+    memcpy(header->destination_mac, dst, NET_HWADDR_LEN_ETHERNET);
+    header->ethertype = htons(protocol);
+    memcpy((uint8_t *)buffer + sizeof(*header), payload, length);
 
-    memcpy((uint8_t *)buf + sizeof(ethernet_frame_header_t), data, length);
-
-    dev->ops->send(dev, buf, sizeof(ethernet_frame_header_t) + length);
-
-    kfree(buf);
+    int result = network_send(iface->device, buffer, frame_length);
+    kfree(buffer);
+    return result;
 }
+
+const net_link_ops_t net_ethernet_link_ops = {
+    .name = "ethernet",
+    .address_length = NET_HWADDR_LEN_ETHERNET,
+    .header_length = sizeof(ethernet_frame_header_t),
+    .send = net_ethernet_send,
+    .receive = net_ethernet_receive,
+};
