@@ -16,6 +16,11 @@ static network_device_t *e1000_device;
 static int cur_rx = 0;
 static int cur_tx = 0;
 
+#define E1000_RX_DESCRIPTORS 8
+#define E1000_TX_DESCRIPTORS 8
+#define E1000_BUFFER_SIZE 2048
+#define E1000_TX_RING_OFFSET 0x400
+
 static int e1000_send(network_device_t *device, const void *data, uint16_t length);
 static int e1000_poll(network_device_t *device);
 
@@ -106,60 +111,75 @@ int e1000_init(network_device_t *device)
     void *phys_page = pt_alloc_page_phys(10);
 
     rings = phys_page;
-    void *buffers = (void *)((uint64_t)phys_page + PAGE_SIZE);
+    uint8_t *rx_buffers = (uint8_t *)phys_page + PAGE_SIZE;
+    uint8_t *tx_buffers = rx_buffers +
+                           E1000_RX_DESCRIPTORS * E1000_BUFFER_SIZE;
 
-    rx_descriptors = 1;
+    rx_descriptors = E1000_RX_DESCRIPTORS;
     e1000_receive_descriptor_t *rx_ring = (e1000_receive_descriptor_t *)rings;
-    rx_ring->buffer_addr = (uint64_t)buffers;
+    for (int i = 0; i < rx_descriptors; i++) {
+        rx_ring[i].buffer_addr =
+            (uint64_t)(rx_buffers + i * E1000_BUFFER_SIZE);
+        rx_ring[i].status = 0;
+    }
+    cur_rx = 0;
 
     // Initialize the receive ring.
     mmio_writel(base + E1000_RDBAL, (uint32_t)(uint64_t)rx_ring);
     mmio_writel(base + E1000_RDBAH, (uint32_t)((uint64_t)rx_ring >> 32));
-    mmio_writel(base + E1000_RDLEN, sizeof(e1000_receive_descriptor_t) * 1);
+    mmio_writel(base + E1000_RDLEN,
+                sizeof(e1000_receive_descriptor_t) * rx_descriptors);
     mmio_writel(base + E1000_RDH, 0);
-    mmio_writel(base + E1000_RDT, rx_descriptors);
+    mmio_writel(base + E1000_RDT, rx_descriptors - 1);
 
-    mmio_writel(base + E1000_RCTL, 1 << 1 | 1 << 15 | 3 << 16 | 1 << 25); // Enable receiver, strip CRC, broadcast accept, BSIZE = 4096
-    
-    tx_descriptors = 8;
-    e1000_transmit_descriptor_t *tx_ring = (e1000_transmit_descriptor_t *)((uint64_t)rings + PAGE_SIZE / 2);
+    // Enable receiver, strip CRC, accept broadcast, 2048-byte buffers.
+    mmio_writel(base + E1000_RCTL, 1 << 1 | 1 << 15 | 1 << 25);
+
+    tx_descriptors = E1000_TX_DESCRIPTORS;
+    e1000_transmit_descriptor_t *tx_ring =
+        (e1000_transmit_descriptor_t *)((uint64_t)rings + E1000_TX_RING_OFFSET);
     for (int i = 0; i < tx_descriptors; i++) {
-        tx_ring[i].buffer_addr = (uint64_t)buffers + 2048 * (i + 1);
+        tx_ring[i].buffer_addr =
+            (uint64_t)(tx_buffers + i * E1000_BUFFER_SIZE);
+        tx_ring[i].status = 0;
     }
-    
+    cur_tx = 0;
+
     // Initialize the transmit ring.
     mmio_writel(base + E1000_TDBAL, (uint32_t)(uint64_t)tx_ring);
     mmio_writel(base + E1000_TDBAH, (uint32_t)((uint64_t)tx_ring >> 32));
-    mmio_writel(base + E1000_TDLEN, sizeof(e1000_transmit_descriptor_t) * tx_descriptors);
+    mmio_writel(base + E1000_TDLEN,
+                sizeof(e1000_transmit_descriptor_t) * tx_descriptors);
     mmio_writel(base + E1000_TDH, 0);
     mmio_writel(base + E1000_TDT, 0);
     
     mmio_writel(base + E1000_TCTL, 1 << 1 | 1 << 3 | 1 << 4 | 1 << 5); // Enable transmitter, pad short packets, collision threshold
 
-    kprintf("e1000: RX ring at %p, TX ring at %p, buffers at %p\n", rx_ring, tx_ring, buffers);
+    kprintf("e1000: RX ring at %p, TX ring at %p, buffers at %p\n", rx_ring, tx_ring, rx_buffers);
     return 0;
 }
 
 static int e1000_send(network_device_t *device, const void *data, uint16_t length) {
     (void)device;
 
-    if (!data || length == 0 || length > 2048) {
+    if (!data || length == 0 || length > E1000_BUFFER_SIZE) {
         kprintf("e1000: invalid packet length %u\n", length);
         return -1;
     }
 
-    e1000_transmit_descriptor_t *tx_ring = (e1000_transmit_descriptor_t *)((uint64_t)rings + PAGE_SIZE / 2);
-    tx_ring = &tx_ring[cur_tx];
+    e1000_transmit_descriptor_t *tx_ring =
+        (e1000_transmit_descriptor_t *)((uint64_t)rings + E1000_TX_RING_OFFSET);
+    e1000_transmit_descriptor_t *desc = &tx_ring[cur_tx];
 
-    void *tx_buffer = (void *)(uintptr_t)tx_ring->buffer_addr;
+    void *tx_buffer = (void *)(uintptr_t)desc->buffer_addr;
     memcpy(tx_buffer, data, length);
 
-    tx_ring->cmd = 0b00001011; // Set the command bits: EOP, IFCS, RS
-    tx_ring->length = length;
-    tx_ring->status = 0;
+    desc->cmd = 0b00001011; // EOP, IFCS, RS
+    desc->length = length;
+    desc->status = 0;
 
-    mmio_writel(base + E1000_TDT, ++cur_tx); // Update the Transmit Descriptor Tail to indicate a new packet is ready
-    cur_tx %= tx_descriptors;
+    cur_tx = (cur_tx + 1) % tx_descriptors;
+    mmio_writel(base + E1000_TDT, cur_tx);
 
     return 0;
 }
@@ -171,14 +191,20 @@ static int e1000_poll(network_device_t *device) {
     e1000_receive_descriptor_t *rx_ring = (e1000_receive_descriptor_t *)rings;
 
     for (int index = 0; index < rx_descriptors; index++) {
-        e1000_receive_descriptor_t *desc = &rx_ring[index];
+        e1000_receive_descriptor_t *desc = &rx_ring[cur_rx];
 
-        if (desc->status & 0x01) { // Check if the descriptor is done
-            network_handle_frame(device, (void *)(uintptr_t)desc->buffer_addr,
-                                 desc->length);
-            desc->status = 0; // Clear the status to indicate it's free
-            processed++;
+        if (!(desc->status & 0x01)) {
+            break;
         }
+
+        network_handle_frame(device, (void *)(uintptr_t)desc->buffer_addr,
+                             desc->length);
+        desc->status = 0;
+
+        /* Return this descriptor to the hardware and advance the tail. */
+        mmio_writel(base + E1000_RDT, cur_rx);
+        cur_rx = (cur_rx + 1) % rx_descriptors;
+        processed++;
     }
 
     return processed;

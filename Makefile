@@ -50,6 +50,7 @@ build-arch:
 add-if:
 	sudo ip tuntap add dev tap0 mode tap
 	sudo ip link set tap0 up
+	sudo ip addr add 10.8.0.2/24 dev tap0
 
 clean:
 	find . -name "*.o" -type f -delete
