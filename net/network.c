@@ -3,9 +3,11 @@
 #include <arp/arp.h>
 #include <ip/ip.h>
 #include <icmp/icmp.h>
-#include <e1000.h>
+#include <driver/registry.h>
+#include <driver/driver.h>
 #include <printf.h>
 #include <memory.h>
+#include <macros.h>
 
 /*
  * Default configuration applied by the core when an interface is created.
@@ -316,25 +318,26 @@ int network_init(void)
     /* L3 protocol numbers. TCP (6) and UDP (17) will register here later. */
     ip4_protocol_register(IP4_PROTOCOL_ICMP, icmp_handle_packet);
 
-    static network_device_t e1000_device = {
-        .name = "e1000",
+    static network_device_t dev;
+
+    FOREACH(driver_registry, driver) {
+        if (driver->init && driver->can_activate((void *)0)) {
+            driver->init(&dev);
+            dev.name = driver->name;
+            break;
+        }
     };
 
-    if (e1000_init(&e1000_device) != 0) {
-        kprintf("network: no supported NIC initialized\n");
+    dev.link = net_link_get("ethernet");
+    if (net_device_register(&dev) != 0) {
+        kprintf("network: failed to register device %s\n", dev.name);
         return -1;
     }
 
-    e1000_device.link = net_link_get("ethernet");
-    if (net_device_register(&e1000_device) != 0) {
-        kprintf("network: failed to register device %s\n", e1000_device.name);
-        return -1;
-    }
-
-    net_interface_t *iface = net_interface_attach(&e1000_device);
+    net_interface_t *iface = net_interface_attach(&dev);
     if (!iface) {
         kprintf("network: failed to create interface for %s\n",
-                e1000_device.name);
+                dev.name);
         return -1;
     }
 
@@ -346,7 +349,7 @@ int network_init(void)
     net_interface_set_ipv4(iface, NET_DEFAULT_IPV4, NET_DEFAULT_NETMASK, 0);
 
     kprintf("network: %s up, %s is 10.8.0.1/24\n",
-            iface->name, e1000_device.name);
+            iface->name, dev.name);
     return 0;
 }
 

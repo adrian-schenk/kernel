@@ -209,3 +209,25 @@ static int e1000_poll(network_device_t *device) {
 
     return processed;
 }
+
+char can_activate_e1000(void *data) {
+    (void)data;
+    return 1;
+    pci_device_t *dev = pci_find_class_subclass(0x02, 0x00);
+    if (!dev) {
+        return 0;
+    }
+
+    if (dev->vendor_id != 0x8086 || dev->device_id != 0x100E) {
+        return 0;
+    }
+
+    return 1;
+}
+
+REGISTER_DRIVER(e1000) = {
+    .name = "e1000",
+    .init = e1000_init,
+    .shutdown = (void (*)(void))0,
+    .can_activate = can_activate_e1000,
+};

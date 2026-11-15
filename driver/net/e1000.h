@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <network.h>
+#include <driver.h>
 
 /* Intel 82540EM (e1000) register subset needed for device bring-up. */
 
@@ -48,3 +49,5 @@ typedef struct e1000_transmit_descriptor
 } __attribute__((packed)) e1000_transmit_descriptor_t;
 
 int e1000_init(network_device_t *device);
+
+DECLARE_DRIVER(e1000);
