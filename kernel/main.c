@@ -31,6 +31,7 @@
 #include <ext4/ext4.h>
 #include <keyboard.h>
 #include "syscall.h"
+#include "rand.h"
 
 uint16_t video_xbytes = 1024 * 3, video_xres = 1024, video_yres = 768;
 uint8_t *video_buffer = (uint8_t *)0xA0000;
@@ -188,7 +189,6 @@ void kernel_main()
     cli();
     cpu_local->scheduler = scheduler_init();
     scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)thread_idle, 0x10, 0x8));
-    scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)thread_test, 0x10, 0x8));
     scheduler_add_task(cpu_local->scheduler, task_create((uint64_t)thread_userspace));
     scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)network_rx_worker, 0x10, 0x8));
 
@@ -240,7 +240,6 @@ void ap_kernel_main()
     cli();
     cpu_local->scheduler = scheduler_init();
     scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)thread_idle, 0x10, 0x8));
-    scheduler_add_task(cpu_local->scheduler, task_create_priv((uint64_t)thread_test, 0x10, 0x8));
     
     scheduler_start(cpu_local->scheduler);
 

@@ -6,6 +6,7 @@
 #include "cpu.h"
 #include "boot_info.h"
 #include "globals.h"
+#include "rand.h"
 
 volatile int rtc_ticks = 0;
 
@@ -107,6 +108,8 @@ void timer_setup()
   {
     apic_speed = (calibration_counts * 1024ULL) / rtc_calibration_ticks;
     kprintf("Detected APIC Timer speed: %d\n", apic_speed);
+
+    rand_seed = (int)apic_speed;
   }
   else
   {
@@ -146,6 +149,14 @@ void timer_setup_ap(struct cpu_local *cpu_local)
   cpu_local->interrupt_handlers = &interrupt_handlers;
 
   long long apic_speed = calibration_counts * (1000 / timer_calib_ms);
+
+  rand_seed ^= (
+      ((apic_speed & 0x000F) << 12) |
+      ((apic_speed & 0x00F0) << 4)  |
+      ((apic_speed & 0x0F00) >> 4)  |
+      ((apic_speed & 0xF000) >> 12)
+  );
+
   cpu_local->ms_counter = apic_speed / 1000;
   cpu_local->apic_time = 0;
 
