@@ -5,16 +5,21 @@
 
 void smp_setup() {
 
-    int bs_apicid = apic_read(LAPIC_ID_REGISTER);
+    int bs_apicid = apic_read(LAPIC_ID_REGISTER) >> 24;
     for (int i = 0; i < apic_ids_count; i++) {
-        if (i == bs_apicid)
+        if (apic_ids[i] == bs_apicid)
             continue;
         kprintf("Starting Core %d of %d\n", i, apic_ids_count - 1);
         boot_info->ap_startup_done = 0;
         int target_apic_id = apic_ids[i];
 
         boot_info->cpu_id = i;
-        boot_info->stack_ptr = kmalloc(4096) + 4095;
+
+        /* SysV AMD64 expects RSP % 16 == 8 on function entry; the AP
+         * trampoline far-returns into ap_kernel_main with the stack
+         * pointer stored here. */
+        uint64_t stack_top = ((uint64_t)kmalloc(4096) + 4096) & ~0xFULL;
+        boot_info->stack_ptr = stack_top - 8;
         
         apic_write(0x280,0); // clear apic errors
         apic_write(0x310, (apic_read(0x310) & 0x00ffffff) | (target_apic_id << 24)); // Select AP
