@@ -41,6 +41,13 @@ load:
     int $0x13
     jc disk_error
 
+    # Load the AP trampoline to physical 0x10000
+    mov $dap_trampoline, %si
+    mov $0x42, %ah
+    mov boot_drive, %dl
+    int $0x13
+    jc disk_error_trampoline
+
     # Load kernel in chunks
     # BP = total sectors remaining
     movw dap_kernel+2, %bp
