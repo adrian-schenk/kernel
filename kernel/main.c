@@ -179,7 +179,7 @@ void kernel_main()
 
     timer_setup();
 
-    //smp_setup();
+    smp_setup();
 
     timer_phase = 1;
     sleep(timer_calib_ms);
