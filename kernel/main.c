@@ -177,6 +177,7 @@ void kernel_main()
         fs_handle_t *ext4 = ext4_handle_create(ata);
         ext4->mount(ext4);
     }
+    
 
     timer_setup();
 

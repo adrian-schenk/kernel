@@ -34,6 +34,7 @@ build: build-arch build-kernel rebuild-boot
 rebuild-disk1:
 	rm disk1.img -f
 	dd if=/dev/zero count=1024 bs=1024 | tr '\000' '\001' > disk1.img
+	mkfs.ext4 -F disk1.img
 
 rebuild-boot:
 	python scripts/build.py
@@ -48,7 +49,7 @@ build-arch:
 	$(MAKE) -C arch/x86
 
 add-if:
-	sudo ip tuntap add dev tap0 mode tap
+	sudo ip tuntap add dev tap0 mode tap user "$USER"
 	sudo ip link set tap0 up
 	sudo ip addr add 10.8.0.2/24 dev tap0
 

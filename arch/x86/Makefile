@@ -15,20 +15,23 @@ all: build_bootloader build_pmentry build_kernelentry build_trampoline build_ker
 
 build: $(OBJS)
 
+LD = ld
+LD_COMMON = -m elf_i386 -T boot/flat.ld
+
 build_bootloader: boot/boot.o
-	ld -m elf_i386 -Ttext 0 --oformat binary -o boot/boot.bin $<
+	$(LD) $(LD_COMMON) --defsym LOAD_ADDR=0 -o boot/boot.bin $^
 
 build_pmentry: boot/kernelcore.o boot/pm.o
-	ld -m elf_i386 -Ttext 0x1000 --oformat binary -o boot/kernelcore.bin $^
+	$(LD) $(LD_COMMON) --defsym LOAD_ADDR=0x1000 -o boot/kernelcore.bin $^
 
-build_trampoline: boot/trampoline.o 
-	ld -m elf_i386 -Ttext 0x10000 --oformat binary -o boot/trampoline.bin $<
+build_trampoline: boot/trampoline.o
+	$(LD) $(LD_COMMON) --defsym LOAD_ADDR=0x10000 -o boot/trampoline.bin $^
 
 build_kernelentry: boot/kernelcore_64.o
 
 build_kernelsig: boot/kernelsig.o boot/entrysig.o
-	ld -m elf_i386 --oformat binary -o boot/kernelsig.bin boot/kernelsig.o 
-	ld -m elf_i386 --oformat binary -o boot/entrysig.bin boot/entrysig.o 
+	$(LD) -m elf_i386 -T boot/flat.ld --defsym LOAD_ADDR=0 -o boot/kernelsig.bin boot/kernelsig.o
+	$(LD) -m elf_i386 -T boot/flat.ld --defsym LOAD_ADDR=0 -o boot/entrysig.bin boot/entrysig.o
 
 #Bootloader should be compiled for 32 bit, rest can be compiled for 64 bit
 boot/boot.o: boot/boot.S

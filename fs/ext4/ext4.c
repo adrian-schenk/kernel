@@ -91,11 +91,13 @@ int ext4_mount(fs_handle_t *handle)
       uint64_t total_blocks = sb->s_blocks_count_lo;
       uint64_t group_count = (total_blocks + blocks_per_group - 1) / blocks_per_group;
       uint64_t inode_size = sb->s_inode_size;
+      
 
       uint64_t group_size = group_count * sb->s_desc_size;
       kprintf("Block size: %d bytes\n", block_size);
       kprintf("Blocks per group: %d\n", blocks_per_group);
       kprintf("Total blocks: %d\n", total_blocks);
+      kprintf("Inodes: %d\n", sb->s_inodes_count - sb->s_free_inodes_count);
       kprintf("Group count: %d\n", group_count);
       kprintf("Group descriptor size: %d bytes\n", sb->s_desc_size);
       kprintf("Group table size: %d bytes\n", group_size);
@@ -283,7 +285,7 @@ static int ext4_traverse_dir(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uin
   const int inode_size = sb->s_inode_size;
 
   ext4_inode_t *inode = ext4_read_inode(blkdev, sb, dir_inode);
-
+  kprintf("at %d and %s\n", dir_inode, path);
   if ((inode->i_mode & 0xF000) != EXT4_DIRECTORY)
   {
     kprintf("Inode %d is not a directory!\n", dir_inode);
