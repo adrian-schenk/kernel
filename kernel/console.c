@@ -3,6 +3,12 @@
 
 console_t *k_console = {0};
 
+graphics_color_t color = {
+    .red = 255,
+    .green = 255,
+    .blue = 255,
+};
+
 uint8_t write_lock;
 
 console_t *console_init()
@@ -46,20 +52,16 @@ void console_write(char *data, int len)
 
     switch (data[i])
     {
-    case '\0':
-      return;
-      break;
-    case '\n':
-      k_console->y++;
-      k_console->x = 0;
-      break;
-    default:
-      graphics_draw_char(k_console->x * 8, k_console->y * 8, data[i], (graphics_color_t){
-                                                                          .red = 255,
-                                                                          .green = 255,
-                                                                          .blue = 255,
-                                                                      });
-      k_console->x++;
+      case '\0':
+        return;
+        break;
+      case '\n':
+        k_console->y++;
+        k_console->x = 0;
+        break;
+      default:
+        graphics_draw_char(k_console->x * 8, k_console->y * 8, data[i], color);
+        k_console->x++;
     }
   }
   unlock(&write_lock);
@@ -89,4 +91,9 @@ void console_clearline(int line)
                                                         .blue = 0,
                                                     });
   }
+}
+
+void console_setcolor(graphics_color_t c)
+{
+  color = c;
 }

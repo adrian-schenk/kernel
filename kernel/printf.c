@@ -4,6 +4,9 @@
 
 uint8_t spinlock;
 
+#define is_int(c) ((c) >= '0' && (c) <= '9')
+#define parse_int(str, var) do { while(is_int(*str)) { var = var * 10 + (*str - '0'); str++; } } while(0) 
+
 const char hex_codes[] = {
     '0',
     '1',
@@ -143,10 +146,49 @@ static void kprintf_putfloat(float n, int len, int precision){
     }
 }
 
+unsigned long long kprintf_parse_color(char **str) {
+
+    unsigned long long color = -1;
+    
+    if (**str == '[') {
+        (*str)++;
+
+        int c = 0;
+        while(is_int(**str)) { c = c * 10 + (**str - '0'); (*str)++; }
+        color = c;
+
+        switch (color) {
+            case 31:
+                color = 0xFF0000; // red
+                break;
+            case 32:
+                color = 0x00FF00; // green
+                break;
+            case 33:
+                color = 0xFFFF00; // yellow
+                break;
+            case 34:
+                color = 0x0000FF; // blue
+                break;
+            default:
+                color = 0xFFFFFF;
+                break;
+        }
+    }
+
+    return color;
+}
+
 int kprintf(const char* str, ...){
 
     cli();
     lock(&spinlock);
+
+    console_setcolor((graphics_color_t){
+        .red = 255,
+        .green = 255,
+        .blue = 255
+    });
 
     va_list args;
 
@@ -164,6 +206,19 @@ int kprintf(const char* str, ...){
     while(*str){
 
         if(*str != '%'){
+            if (*str == 27) {
+                str++;
+                unsigned long long color = kprintf_parse_color((char *)&str);
+                if (color != -1) {
+                    console_setcolor((graphics_color_t){
+                        .red = (color >> 16) & 0xFF,
+                        .green = (color >> 8) & 0xFF,
+                        .blue = color & 0xFF
+                    });
+                    str++;
+                    continue;
+                }
+            }
             kprintf_putchar(*str);
         }
         else{

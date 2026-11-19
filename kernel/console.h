@@ -8,6 +8,7 @@
 typedef struct console{
     int width, height;
     int x, y;
+    int cursor_x, cursor_y;
     char* buffer; // Command buffer
 } console_t;
 
@@ -23,3 +24,4 @@ void console_putint(int i);
 void console_putstr(char* c);
 
 void console_clearline(int line);
+void console_setcolor(graphics_color_t c);

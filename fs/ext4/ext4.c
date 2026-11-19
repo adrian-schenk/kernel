@@ -13,18 +13,18 @@
 static uint32_t ext4_superblock_checksum(const uint8_t *sb);
 static void crc32c_init(void);
 
-static int ext4_read_file(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64_t inode, uint8_t *buffer, size_t size, size_t offset);
+static int ext4_read_file(fs_handle_t *fs_handle, uint64_t inode, uint8_t *buffer, size_t size, size_t offset);
 
-static void ext4_parse_extent_tree(blkdev_handle_t *blkdev, ext4_superblock_t *sb, ext4_extent_header_t *eh, ext4_extent_arr_t *arr);
-static void ext4_parse_extent_tree_internal(blkdev_handle_t *blkdev, ext4_superblock_t *sb, ext4_extent_header_t *eh, ext4_extent_arr_t *arr);
-static void ext4_parse_extent_tree_leaf(blkdev_handle_t *blkdev, ext4_superblock_t *sb, ext4_extent_header_t *eh, ext4_extent_arr_t *arr);
+static void ext4_parse_extent_tree(fs_handle_t *fs_handle, ext4_extent_header_t *eh, ext4_extent_arr_t *arr);
+static void ext4_parse_extent_tree_internal(fs_handle_t *fs_handle, ext4_extent_header_t *eh, ext4_extent_arr_t *arr);
+static void ext4_parse_extent_tree_leaf(fs_handle_t *fs_handle, ext4_extent_header_t *eh, ext4_extent_arr_t *arr);
 
-static int ext4_traverse_root(blkdev_handle_t *blkdev, ext4_superblock_t *sb, char *path);
-static int ext4_traverse_dir(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64_t dir_inode, uint64_t parent_inode, char *path);
+static int ext4_traverse_root(fs_handle_t *fs_handle, char *path);
+static int ext4_traverse_dir(fs_handle_t *fs_handle, uint64_t dir_inode, uint64_t parent_inode, char *path);
 
-static ext4_inode_t *ext4_read_inode(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64_t inode_num);
+static ext4_inode_t *ext4_read_inode(fs_handle_t *fs_handle, uint64_t inode_num);
 
-static uint32_t ext4_bg_get_inode_tbl_block(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64_t bg, uint64_t inode_num);
+static uint32_t ext4_bg_get_inode_tbl_block(fs_handle_t *fs_handle, uint64_t bg, uint64_t inode_num);
 
 fs_handle_t *ext4_handle_create(blkdev_handle_t *blk_dev)
 {
@@ -125,12 +125,12 @@ int ext4_open(fs_handle_t *handle, char *path)
 
   ext4_superblock_t *sb = &fs->superblock;
 
-  int inode = ext4_traverse_root(handle->blk_dev, sb, path);
+  int inode = ext4_traverse_root(handle, path);
 
   if (inode < 0)
     return -1;
 
-  ext4_inode_t *inode_ptr = ext4_read_inode(handle->blk_dev, sb, inode);
+  ext4_inode_t *inode_ptr = ext4_read_inode(handle, inode);
   if (inode_ptr == NULL)
     return -1;
 
@@ -174,15 +174,19 @@ uint64_t ext4_fstat(fs_handle_t *handle, char *path, char recurse)
   return 0;
 }
 
-static int ext4_read_file(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64_t inode, uint8_t *buffer, size_t size, size_t offset)
+static int ext4_read_file(fs_handle_t *fs_handle, uint64_t inode, uint8_t *buffer, size_t size, size_t offset)
 {
+  ext4_fs_t *fs = (ext4_fs_t *)fs_handle->fs_ctx;
+  ext4_superblock_t *sb = &fs->superblock;
+  blkdev_handle_t *blkdev = fs_handle->blk_dev;
+
   uint64_t block_size = 1024 << sb->s_log_block_size;
   uint64_t inode_size = sb->s_inode_size;
 
   uint64_t inode_bg = (inode - 1) / sb->s_inodes_per_group;
   uint64_t inode_index = (inode - 1) % sb->s_inodes_per_group;
 
-  uint32_t bg_inode_table = ext4_bg_get_inode_tbl_block(blkdev, sb, inode_bg, inode);
+  uint32_t bg_inode_table = ext4_bg_get_inode_tbl_block(fs_handle, inode_bg, inode);
 
   uint64_t inode_block = bg_inode_table + ((inode_index * inode_size) / block_size);
   uint64_t inode_offset = (inode_index * inode_size) % block_size;
@@ -206,7 +210,7 @@ static int ext4_read_file(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64
 
   ext4_extent_arr_t extents;
   extents.count = 0;
-  ext4_parse_extent_tree(blkdev, sb, (ext4_extent_header_t *)&inode_ptr->i_block, &extents);
+  ext4_parse_extent_tree(fs_handle, (ext4_extent_header_t *)&inode_ptr->i_block, &extents);
 
   kfree(buf);
 
@@ -225,20 +229,28 @@ static int ext4_read_file(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64
   return 0;
 }
 
-static void ext4_parse_extent_tree(blkdev_handle_t *blkdev, ext4_superblock_t *sb, ext4_extent_header_t *eh, ext4_extent_arr_t *arr)
+static void ext4_parse_extent_tree(fs_handle_t *fs_handle, ext4_extent_header_t *eh, ext4_extent_arr_t *arr)
 {
+  ext4_fs_t *fs = (ext4_fs_t *)fs_handle->fs_ctx;
+  ext4_superblock_t *sb = &fs->superblock;
+  blkdev_handle_t *blkdev = fs_handle->blk_dev;
+
   if (eh->eh_depth == 0)
   {
-    ext4_parse_extent_tree_leaf(blkdev, sb, eh, arr);
+    ext4_parse_extent_tree_leaf(fs_handle, eh, arr);
   }
   else
   {
-    ext4_parse_extent_tree_internal(blkdev, sb, eh, arr);
+    ext4_parse_extent_tree_internal(fs_handle, eh, arr);
   }
 }
 
-static void ext4_parse_extent_tree_internal(blkdev_handle_t *blkdev, ext4_superblock_t *sb, ext4_extent_header_t *eh, ext4_extent_arr_t *arr)
+static void ext4_parse_extent_tree_internal(fs_handle_t *fs_handle, ext4_extent_header_t *eh, ext4_extent_arr_t *arr)
 {
+  ext4_fs_t *fs = (ext4_fs_t *)fs_handle->fs_ctx;
+  ext4_superblock_t *sb = &fs->superblock;
+  blkdev_handle_t *blkdev = fs_handle->blk_dev;
+
   uint64_t block_size = 1024 << sb->s_log_block_size;
 
   int entries_per_block = block_size / sizeof(ext4_extent_idx_t);
@@ -254,14 +266,18 @@ static void ext4_parse_extent_tree_internal(blkdev_handle_t *blkdev, ext4_superb
     ext4_extent_header_t *child_eh = kmalloc(sizeof(ext4_extent_header_t));
     blkdev->read(blkdev->ctx, child_block * block_size, sizeof(ext4_extent_header_t), child_eh);
 
-    ext4_parse_extent_tree(blkdev, sb, child_eh, arr);
+    ext4_parse_extent_tree(fs_handle, child_eh, arr);
   }
 
   kfree(idx_arr);
 }
 
-static void ext4_parse_extent_tree_leaf(blkdev_handle_t *blkdev, ext4_superblock_t *sb, ext4_extent_header_t *eh, ext4_extent_arr_t *arr)
+static void ext4_parse_extent_tree_leaf(fs_handle_t *fs_handle, ext4_extent_header_t *eh, ext4_extent_arr_t *arr)
 {
+  ext4_fs_t *fs = (ext4_fs_t *)fs_handle->fs_ctx;
+  ext4_superblock_t *sb = &fs->superblock;
+  blkdev_handle_t *blkdev = fs_handle->blk_dev;
+
   uint64_t block_size = 1024 << sb->s_log_block_size;
 
   for (int i = 0; i < eh->eh_entries; i++)
@@ -271,20 +287,25 @@ static void ext4_parse_extent_tree_leaf(blkdev_handle_t *blkdev, ext4_superblock
   }
 }
 
-static int ext4_traverse_root(blkdev_handle_t *blkdev, ext4_superblock_t *sb, char *path)
+static int ext4_traverse_root(fs_handle_t *fs_handle, char *path)
 {
   if (*path == '/' && path[1] == '\0')
     return EXT4_ROOT_INO;
-  return ext4_traverse_dir(blkdev, sb, EXT4_ROOT_INO, EXT4_ROOT_INO, path);
+  return ext4_traverse_dir(fs_handle, EXT4_ROOT_INO, EXT4_ROOT_INO, path);
 }
 
 // TODO: implement non extent
-static int ext4_traverse_dir(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64_t dir_inode, uint64_t parent_inode, char *path)
+static int ext4_traverse_dir(fs_handle_t *fs_handle, uint64_t dir_inode, uint64_t parent_inode, char *path)
 {
+
+  ext4_fs_t *fs = (ext4_fs_t *)fs_handle->fs_ctx;
+  ext4_superblock_t *sb = &fs->superblock;
+  blkdev_handle_t *blkdev = fs_handle->blk_dev;
+
   const int block_size = 1024 << sb->s_log_block_size;
   const int inode_size = sb->s_inode_size;
 
-  ext4_inode_t *inode = ext4_read_inode(blkdev, sb, dir_inode);
+  ext4_inode_t *inode = ext4_read_inode(fs_handle, dir_inode);
   kprintf("at %d and %s\n", dir_inode, path);
   if ((inode->i_mode & 0xF000) != EXT4_DIRECTORY)
   {
@@ -309,7 +330,7 @@ static int ext4_traverse_dir(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uin
   ext4_extent_arr_t extents;
   extents.arr = kmalloc(sizeof(ext4_extent_t) * 128);
   extents.count = 0;
-  ext4_parse_extent_tree(blkdev, sb, (ext4_extent_header_t *)&inode->i_block, &extents);
+  ext4_parse_extent_tree(fs_handle, (ext4_extent_header_t *)&inode->i_block, &extents);
   kfree(inode);
   for (int k = 0; k < extents.count; k++)
   {
@@ -329,7 +350,7 @@ static int ext4_traverse_dir(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uin
           if (dir_entry->inode != parent_inode && strncmp(dir_entry->name, path, dir_entry->name_len) == 0)
           {
             kfree(buf);
-            return ext4_traverse_dir(blkdev, sb, dir_entry->inode, dir_inode, path + path_len);
+            return ext4_traverse_dir(fs_handle, dir_entry->inode, dir_inode, path + path_len);
           }
         }
         else if (strncmp(dir_entry->name, path, dir_entry->name_len) == 0 && path[path_len] == '\0')
@@ -357,8 +378,11 @@ static int ext4_traverse_dir(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uin
   return -1;
 }
 
-static ext4_inode_t *ext4_read_inode(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64_t inode_num)
+static ext4_inode_t *ext4_read_inode(fs_handle_t *fs_handle, uint64_t inode_num)
 {
+  ext4_fs_t *fs = (ext4_fs_t *)fs_handle->fs_ctx;
+  ext4_superblock_t *sb = &fs->superblock;
+  blkdev_handle_t *blkdev = fs_handle->blk_dev;
 
   uint64_t block_size = 1024 << sb->s_log_block_size;
   uint64_t inodes_per_group = sb->s_inodes_per_group;
@@ -366,7 +390,7 @@ static ext4_inode_t *ext4_read_inode(blkdev_handle_t *blkdev, ext4_superblock_t 
 
   uint64_t inode_bg = (inode_num - 1) / inodes_per_group;
   uint64_t inode_index = (inode_num - 1) % inodes_per_group;
-  uint64_t bg_inode_table = ext4_bg_get_inode_tbl_block(blkdev, sb, inode_bg, inode_num);
+  uint64_t bg_inode_table = ext4_bg_get_inode_tbl_block(fs_handle, inode_bg, inode_num);
 
   uint64_t offset = inode_index * inode_size;
   uint64_t inode_block = bg_inode_table + (offset / block_size);
@@ -389,8 +413,12 @@ static ext4_inode_t *ext4_read_inode(blkdev_handle_t *blkdev, ext4_superblock_t 
   return result;
 }
 
-static uint32_t ext4_bg_get_inode_tbl_block(blkdev_handle_t *blkdev, ext4_superblock_t *sb, uint64_t bg, uint64_t inode_num)
+static uint32_t ext4_bg_get_inode_tbl_block(fs_handle_t *fs_handle, uint64_t bg, uint64_t inode_num)
 {
+  ext4_fs_t *fs = (ext4_fs_t *)fs_handle->fs_ctx;
+  ext4_superblock_t *sb = &fs->superblock;
+  blkdev_handle_t *blkdev = fs_handle->blk_dev;
+
   uint64_t block_size = 1024 << sb->s_log_block_size;
   uint64_t inodes_per_group = sb->s_inodes_per_group;
 

@@ -178,7 +178,6 @@ void kernel_main()
         ext4->mount(ext4);
     }
     
-
     timer_setup();
 
     smp_setup();

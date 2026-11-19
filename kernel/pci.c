@@ -159,9 +159,9 @@ static void pci_scan_function(uint8_t bus, uint8_t device, uint8_t function)
       .subclass = subclass,
   };
 
-  kprintf("  Bus %d, device %d, function %d:\n", bus, device, function);
+  kprintf("Bus %d, device %d, function %d:\n", bus, device, function);
 
-  kprintf("    %s: PCI device %x:%x (%x, %x)\n",
+  kprintf("  %s: PCI device %x:%x (%x, %x)\n",
          pci_class_name(class_code, subclass),
          vendor,
          device_id,

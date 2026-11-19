@@ -32,5 +32,5 @@ typedef struct graphics_color
   };
 } graphics_color_t;
 
-void graphics_draw_char(int x, int y, char c, graphics_color_t);
+void graphics_draw_char(int x, int y, unsigned char c, graphics_color_t);
 int graphics_draw_pixel(int x, int y, int color);

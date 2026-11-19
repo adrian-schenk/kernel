@@ -23,7 +23,7 @@ static int plot_pixel(int x, int y, char *data, graphics_color_t t)
   }
 }
 
-void graphics_draw_char(int x, int y, char c, graphics_color_t t)
+void graphics_draw_char(int x, int y, unsigned char c, graphics_color_t t)
 {
   plot_pixel(x, y, &fontdata[c * 8], t);
 }
