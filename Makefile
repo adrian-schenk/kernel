@@ -49,7 +49,7 @@ build-arch:
 	$(MAKE) -C arch/x86
 
 add-if:
-	sudo ip tuntap add dev tap0 mode tap user "$USER"
+	sudo ip tuntap add dev tap0 mode tap user "$(USER)"
 	sudo ip link set tap0 up
 	sudo ip addr add 10.8.0.2/24 dev tap0
 
